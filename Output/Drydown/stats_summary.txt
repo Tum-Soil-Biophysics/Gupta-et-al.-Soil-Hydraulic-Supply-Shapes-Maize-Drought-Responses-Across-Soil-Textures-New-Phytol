@@ -1,0 +1,182 @@
+==============================================================================
+Transpiration thresholds:  Φ(h)  <  K(h)  <  h
+==============================================================================
+data folder: Hyprob_data
+
+[1] HYPROP PDI fits
+  Sandy Loam  [joint fit over replicates (Sandy2.xlsx)]: th_r=0.1440 th_s=0.4100 alpha=0.0460 n=3.3620 Ks=2920.8 tau=+1.4650 omega=1.980e-04 a=-1.9150
+              theta spans 0.0683-0.4097 over pF -2.0 to 4.2
+  Silt Loam   [joint fit over replicates (Silt1.xlsx)]: th_r=0.1310 th_s=0.4820 alpha=0.0573 n=1.2960 Ks=144.0 tau=+0.6790 omega=6.510e-02 a=-2.2090
+              theta spans 0.1010-0.4816 over pF -2.0 to 4.2
+
+Hydraulic model validation
+  phi grid convergence (200001 vs 50001 points): max relative change 1.04e-06
+  tabulated curves vs PDI evaluated from the parameter sheet:
+    Sandy R1    theta: max 0.0005 cm3/cm3   log10 K: median 0.0012, max 0.007 at pF 1.77
+    Silt R1     theta: max 0.0015 cm3/cm3   log10 K: median 0.0027, max 0.131 at pF 1.19
+    Sandy R2    theta: max 0.0005 cm3/cm3   log10 K: median 0.0009, max 0.007 at pF 1.71
+    Silt R2     theta: max 0.0016 cm3/cm3   log10 K: median 0.0025, max 0.157 at pF 1.28
+    Sandy R3    theta: max 0.0005 cm3/cm3   log10 K: median 0.0011, max 0.007 at pF 1.66
+    Silt R3     theta: max 0.0018 cm3/cm3   log10 K: median 0.0025, max 0.060 at pF 1.37
+    pooled Sandy Loam theta: max 0.0007 cm3/cm3   log10 K: median 0.0035, max 0.007 at pF 1.53
+    pooled Silt Loam theta: max 0.0021 cm3/cm3   log10 K: median 0.0025, max 0.110 at pF 1.29
+
+  FIG_CURVES = 'pooled': Fig 1 / Fig 2 / Table 1 use one joint fit per soil
+
+[2] plant data
+
+[3] linear-plateau fits in theta space
+
+[4] thresholds converted onto pF, log K, log phi  (PDI curves)
+     Threshold   Scale      d  pooled_SD  n_sandy  n_silt
+    theta_crit   theta 2.7197     0.0246       30      30
+    theta_crit     SMP 3.4192     0.2406       30      30
+    theta_crit    K(h) 1.7751     0.7098       30      30
+    theta_crit MFP phi 1.1098     0.3129       30      30
+35%-45% of max   theta 5.9462     0.0076       30      30
+35%-45% of max     SMP 3.8541     0.1956       30      30
+35%-45% of max    K(h) 2.6979     0.3830       30      30
+35%-45% of max MFP phi 2.1575     0.2019       30      30
+
+[5] bootstrap and paired tests
+     Threshold   Scale     d    lo    hi
+    theta_crit   theta 2.720 2.072 3.986
+    theta_crit     SMP 3.419 2.454 5.547
+    theta_crit    K(h) 1.775 1.140 2.582
+    theta_crit MFP phi 1.110 0.470 1.767
+35%-45% of max   theta 5.946 5.411 7.214
+35%-45% of max     SMP 3.854 3.070 5.602
+35%-45% of max    K(h) 2.698 2.114 3.965
+35%-45% of max MFP phi 2.157 1.643 3.239
+     Threshold       Comparison    diff      lo      hi  p_boot  p_wilcoxon
+    theta_crit  MFP phi vs K(h) -0.6918 -0.8319 -0.5865  0.0003      0.0625
+    theta_crit   MFP phi vs SMP -2.5105 -3.7961 -1.9008  0.0001      0.0312
+    theta_crit      K(h) vs SMP -1.8187 -2.9991 -1.2889  0.0001      0.0312
+    theta_crit MFP phi vs theta -1.7082 -3.3458 -0.5727  0.0001      0.0312
+    theta_crit    K(h) vs theta -1.0163 -2.6471  0.0710  0.0431      0.0938
+    theta_crit     SMP vs theta  0.8023 -1.2287  2.3123  0.7675      0.4375
+35%-45% of max  MFP phi vs K(h) -0.5605 -0.7777 -0.4465  0.0001      0.0312
+35%-45% of max   MFP phi vs SMP -1.7615 -2.4575 -1.3890  0.0001      0.0312
+35%-45% of max      K(h) vs SMP -1.2010 -1.6854 -0.9371  0.0001      0.0312
+35%-45% of max MFP phi vs theta -3.8724 -4.4845 -3.3414  0.0001      0.0312
+35%-45% of max    K(h) vs theta -3.3119 -3.8863 -2.6437  0.0001      0.0312
+35%-45% of max     SMP vs theta -2.1109 -2.8153 -1.2058  0.0018      0.0312
+
+[6] native-space collapse test
+  Scale  sep_mean  sep_max  overlap_width  breakpoint_gap  R2_common  R2_separate    dR2
+  theta    0.2533   0.5816         0.1255          0.0642     0.6913       0.8440 0.1527
+    SMP    0.5947   0.6688         0.8017          1.0600     0.4907       0.8622 0.3715
+   K(h)    0.4073   0.4811         2.3303          1.6501     0.6615       0.8604 0.1989
+MFP phi    0.2760   0.3670         1.4311          0.4844     0.7313       0.8635 0.1321
+  sep_mean = mean vertical gap between the two soils' fitted curves,
+  in units of Tr/Tr_max, over the range where both soils have data.
+
+[7] all HYPROP curve pairings
+  3 sandy x 3 silt = 9 curve pairings
+              pair      threshold  d_θ   n_θ  d_h   n_h  d_K(h) n_K(h)  d_Φ(h) n_Φ(h)  order_holds  supply_below_state  Φ(h)_smallest
+Sandy R1 x Silt R1     theta_crit 2.72 30/30 2.57 30/30    1.38  30/30    0.88  30/30         True                True           True
+Sandy R1 x Silt R1 35%-45% of max 5.95 30/30 2.79 30/30    1.95  30/30    1.81  30/30         True                True           True
+Sandy R1 x Silt R2     theta_crit 2.72 30/30 2.70 30/30    1.52  30/30    1.03  30/30         True                True           True
+Sandy R1 x Silt R2 35%-45% of max 5.95 30/30 2.82 30/30    1.93  30/30    1.69  30/30         True                True           True
+Sandy R1 x Silt R3     theta_crit 2.72 30/30 2.58 30/30    1.30  30/30    0.55  30/30         True                True           True
+Sandy R1 x Silt R3 35%-45% of max 5.95 30/30 2.79 30/30    1.55  30/30    0.84  30/30         True                True           True
+Sandy R2 x Silt R1     theta_crit 2.72 30/30 3.37 30/30    1.76  30/30    1.19  30/30         True                True           True
+Sandy R2 x Silt R1 35%-45% of max 5.95 30/30 3.54 30/30    2.45  30/30    1.99  30/30         True                True           True
+Sandy R2 x Silt R2     theta_crit 2.72 30/30 3.53 30/30    1.88  30/30    1.32  30/30         True                True           True
+Sandy R2 x Silt R2 35%-45% of max 5.95 30/30 3.57 30/30    2.43  30/30    1.87  30/30         True                True           True
+Sandy R2 x Silt R3     theta_crit 2.72 30/30 3.39 30/30    1.69  30/30    0.92  30/30         True                True           True
+Sandy R2 x Silt R3 35%-45% of max 5.95 30/30 3.54 30/30    2.07  30/30    1.08  30/30         True                True           True
+Sandy R3 x Silt R1     theta_crit 2.72 30/30 4.08 30/30    2.04  30/30    1.40  30/30         True                True           True
+Sandy R3 x Silt R1 35%-45% of max 5.95 30/30 5.13 30/30    3.96  30/30    3.52  30/30         True                True           True
+Sandy R3 x Silt R2     theta_crit 2.72 30/30 4.29 30/30    2.20  30/30    1.56  30/30         True                True           True
+Sandy R3 x Silt R2 35%-45% of max 5.95 30/30 5.18 30/30    3.97  30/30    3.43  30/30         True                True           True
+Sandy R3 x Silt R3     theta_crit 2.72 30/30 4.10 30/30    1.96  30/30    1.08  30/30         True                True           True
+Sandy R3 x Silt R3 35%-45% of max 5.95 30/30 5.13 30/30    3.56  30/30    2.53  30/30         True                True           True
+  both supply variables below both state variables in 18/18 pairing x threshold combinations
+  order Φ(h) < K(h) < h holds in 18/18 pairing x threshold combinations
+
+[8] Table 1  raw values, fold-difference, span-normalised gap
+     Threshold Variable  Unit    Sandy      Silt  fold    gap  span  pct_of_span  n_sandy  n_silt
+    theta_crit        θ % VWC    15.08     21.76 1.443   6.68 13.06        51.16       30      30
+    theta_crit        θ % VWC    15.08     21.76 1.443   6.68 13.06        51.16       30      30
+    theta_crit        h   kPa    8.097     53.83 6.649 0.8227     2        41.14       30      30
+    theta_crit     K(h)  cm/d  0.09203  0.005057  18.2   1.26 4.162        30.27       30      30
+    theta_crit     Φ(h) cm2/d    4.875     2.191 2.225 0.3473 2.566        13.54       30      30
+35%-45% of max        θ % VWC    10.96     15.46  1.41    4.5 13.06        34.47       30      30
+35%-45% of max        θ % VWC    10.96     15.46  1.41    4.5 13.06        34.47       30      30
+35%-45% of max        h   kPa    43.51     246.8 5.672 0.7537     2        37.69       30      30
+35%-45% of max     K(h)  cm/d 0.001791 0.0001659  10.8  1.033 4.162        24.83       30      30
+35%-45% of max     Φ(h) cm2/d   0.8265    0.3031 2.727 0.4357 2.566        16.98       30      30
+
+[9] figures
+
+[10] integration audit -> Table S4
+
+Integration audit (Table S4): phi [cm2/d] at the mean threshold suction
+                                                Scheme  Sandy Loam | theta_crit  Sandy Loam | 35%-45% of max  Silt Loam | theta_crit  Silt Loam | 35%-45% of max  Max deviation (%)
+Trapezoidal, uniform in pF, 200,001 points (reference)                 4.030167                     0.836591                2.195618                    0.304854           0.000000
+                         Simpson's rule, uniform in pF                 4.030167                     0.836591                2.195618                    0.304854           0.000000
+                   Adaptive quadrature (no fixed grid)                 4.030168                     0.836591                2.195618                    0.304854           0.000076
+    Trapezoidal, integrated in h (logarithmic spacing)                 4.030167                     0.836591                2.195618                    0.304854           0.000000
+              Trapezoidal, 12,501 points (16x coarser)                 4.030168                     0.836591                2.195619                    0.304854           0.000035
+                Trapezoidal, 800,001 points (4x finer)                 4.030167                     0.836591                2.195618                    0.304854           0.000000
+  maximum deviation from the reference scheme across all schemes and thresholds: 7.59e-05 % -> phi is independent of the integration scheme
+  dry reference limit (tail extrapolated log-linearly beyond the fits):
+    Sandy Loam  K ~ h^-1.92 in the dry tail (a > 1 required for convergence)
+    Silt Loam   K ~ h^-2.21 in the dry tail (a > 1 required for convergence)
+      Soil      Threshold  upper_limit_pF      phi  tail_removed  change_pct  film_exponent
+Sandy Loam     theta_crit        4.200000 4.030167      0.000000    0.000000      -1.916236
+Sandy Loam     theta_crit        6.800000 4.062887     -0.032719    0.811860      -1.916236
+Sandy Loam     theta_crit        8.000000 4.063013     -0.032845    0.814983      -1.916236
+Sandy Loam     theta_crit       10.000000 4.063023     -0.032856    0.815249      -1.916236
+Sandy Loam     theta_crit       12.000000 4.063023     -0.032856    0.815252      -1.916236
+Sandy Loam 35%-45% of max        4.200000 0.836591      0.000000    0.000000      -1.916236
+Sandy Loam 35%-45% of max        6.800000 0.869310     -0.032719    3.911029      -1.916236
+Sandy Loam 35%-45% of max        8.000000 0.869436     -0.032845    3.926074      -1.916236
+Sandy Loam 35%-45% of max       10.000000 0.869447     -0.032856    3.927355      -1.916236
+Sandy Loam 35%-45% of max       12.000000 0.869447     -0.032856    3.927371      -1.916236
+ Silt Loam     theta_crit        4.200000 2.195618      0.000000    0.000000      -2.210159
+ Silt Loam     theta_crit        6.800000 2.231801     -0.036183    1.647972      -2.210159
+ Silt Loam     theta_crit        8.000000 2.231826     -0.036208    1.649102      -2.210159
+ Silt Loam     theta_crit       10.000000 2.231827     -0.036209    1.649143      -2.210159
+ Silt Loam     theta_crit       12.000000 2.231827     -0.036209    1.649144      -2.210159
+ Silt Loam 35%-45% of max        4.200000 0.304854      0.000000    0.000000      -2.210159
+ Silt Loam 35%-45% of max        6.800000 0.341037     -0.036183   11.869020      -2.210159
+ Silt Loam 35%-45% of max        8.000000 0.341062     -0.036208   11.877161      -2.210159
+ Silt Loam 35%-45% of max       10.000000 0.341063     -0.036209   11.877458      -2.210159
+ Silt Loam 35%-45% of max       12.000000 0.341063     -0.036209   11.877458      -2.210159
+
+Dry-limit sensitivity (Table S4c): the ordering re-tested at each limit
+Dry limit (pF) Reference      Threshold  |d| θ  |d| h  |d| K(h)  |d| Φ(h)  n on Φ  order_holds  supply_below_state  Δ |d| Φ vs reference
+           4.2       yes     theta_crit 2.7197 3.4192    1.7751    1.1098      60         True                True                0.0000
+           4.2       yes 35%-45% of max 5.9462 3.8541    2.6979    2.1575      60         True                True                0.0000
+           6.8               theta_crit 2.7197 3.4192    1.7751    1.1096      60         True                True               -0.0001
+           6.8           35%-45% of max 5.9462 3.8541    2.6979    2.1627      60         True                True                0.0052
+           8.0               theta_crit 2.7197 3.4192    1.7751    1.1097      60         True                True               -0.0001
+           8.0           35%-45% of max 5.9462 3.8541    2.6979    2.1633      60         True                True                0.0058
+          10.0               theta_crit 2.7197 3.4192    1.7751    1.1097      60         True                True               -0.0001
+          10.0           35%-45% of max 5.9462 3.8541    2.6979    2.1634      60         True                True                0.0059
+          12.0               theta_crit 2.7197 3.4192    1.7751    1.1097      60         True                True               -0.0001
+          12.0           35%-45% of max 5.9462 3.8541    2.6979    2.1634      60         True                True                0.0059
+    pF  4.2:  order holds in 2/2 thresholds, supply < state in 2/2
+    pF  6.8:  order holds in 2/2 thresholds, supply < state in 2/2
+    pF  8.0:  order holds in 2/2 thresholds, supply < state in 2/2
+    pF 10.0:  order holds in 2/2 thresholds, supply < state in 2/2
+    pF 12.0:  order holds in 2/2 thresholds, supply < state in 2/2
+\n[11] supplementary tables as PNG
+
+Per-genotype soil separation (Table S2), as plotted in Fig. 1e,f
+     Threshold               Genotype  θ sep.  θ SE θ sig.  h sep.  h SE h sig.  K(h) sep.  K(h) SE K(h) sig.  Φ(h) sep.  Φ(h) SE Φ(h) sig.
+    theta_crit               Alpenfex   2.531 0.362    ***   3.840 0.367    ***      1.791    0.328        **      1.340    0.324         *
+    theta_crit         Benedictio KWS   2.611 0.411     **   3.664 0.424     **      1.903    0.441        ns      1.165    0.388        ns
+    theta_crit Braunes Schindelmeiser   2.003 0.891     ns   4.169 0.808     **      2.371    0.788        ns      1.879    0.837        ns
+    theta_crit               Luigi CS   2.645 0.541      *   3.550 0.291    ***      2.092    0.577        ns      1.335    0.530        ns
+    theta_crit                  P8888   4.047 0.335    ***   1.720 0.594      *      0.214    0.399        ns      0.416    0.457        ns
+    theta_crit          Pfarrkirchner   2.481 0.517      *   3.573 0.440     **      2.280    0.549        ns      1.356    0.488        ns
+35%-45% of max               Alpenfex   5.238 0.275    ***   4.385 0.223    ***      3.261    0.230       ***      2.767    0.236       ***
+35%-45% of max         Benedictio KWS   5.822 0.647    ***   4.011 0.802      *      2.848    0.789        ns      2.284    0.766        ns
+35%-45% of max Braunes Schindelmeiser   5.951 0.710    ***   3.644 0.901      *      2.508    0.886        ns      1.967    0.885        ns
+35%-45% of max               Luigi CS   7.090 0.624    ***   3.254 0.572     **      2.027    0.577         *      1.412    0.579        ns
+35%-45% of max                  P8888   5.490 0.499    ***   3.958 0.340    ***      2.851    0.358       ***      2.405    0.387        **
+35%-45% of max          Pfarrkirchner   6.087 0.856    ***   3.874 0.879      *      2.691    0.875        ns      2.111    0.856        ns
+  genotypes with a significant soil contrast (of 12 genotype x threshold combinations): θ 11, h 12, K(h) 4, Φ(h) 3

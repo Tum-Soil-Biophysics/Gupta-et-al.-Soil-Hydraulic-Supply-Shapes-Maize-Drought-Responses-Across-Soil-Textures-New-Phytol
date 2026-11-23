@@ -1,28 +1,71 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
-title: "[Repository name]: [short description]"
-type: software
+message: "If you use these data or this code, please cite the related article and this repository."
+title: "Gupta et al. (2026): Soil Hydraulic Supply Shapes Maize Drought Responses Across Soil Textures (data and code)"
+type: dataset
 authors:
-  - family-names: "[Family name]"
-    given-names: "[Given name]"
-    affiliation: "Technical University of Munich"
+  - family-names: "Gupta"
+    given-names: "Saniv"
+    affiliation: "Technical University of Munich, Chair of Soil Biophysics and Environmental Systems"
+  - family-names: "Wild"
+    given-names: "Andreas J."
+    affiliation: "University of Bayreuth, Agroecology, Bayreuth Center of Ecology and Environmental Research (BayCEER)"
+  - family-names: "Heid"
+    given-names: "Alica"
+    affiliation: "University of Bayreuth, Ecological Microbiology, Bayreuth Center of Ecology and Environmental Research (BayCEER)"
+  - family-names: "Thiel"
+    given-names: "Jessica"
+    affiliation: "Bavarian State Research Center for Agriculture (LfL), Institute for Agroecology and Organic Farming"
+  - family-names: "Humpert"
+    given-names: "Jonas"
+    affiliation: "Technical University of Munich, Chair of Soil Biophysics and Environmental Systems"
+  - family-names: "Visconti"
+    given-names: "Anaclara"
+    affiliation: "University of Bayreuth, Agroecology, Bayreuth Center of Ecology and Environmental Research (BayCEER); Leibniz Centre for Agricultural Landscape Research (ZALF)"
+  - family-names: "Holz"
+    given-names: "Maire"
+    affiliation: "Leibniz Centre for Agricultural Landscape Research (ZALF)"
+  - family-names: "Wiesmeier"
+    given-names: "Martin"
+    affiliation: "Bavarian State Research Center for Agriculture (LfL), Institute for Agroecology and Organic Farming"
+  - family-names: "Lueders"
+    given-names: "Tillmann"
+    affiliation: "University of Bayreuth, Ecological Microbiology, Bayreuth Center of Ecology and Environmental Research (BayCEER)"
+  - family-names: "Geyer"
+    given-names: "Manuel"
+    affiliation: "Bavarian State Research Center for Agriculture (LfL), Institute for Crop Science and Plant Breeding"
+  - family-names: "Groth"
+    given-names: "Jennifer"
+    affiliation: "Bavarian State Research Center for Agriculture (LfL), Institute for Crop Science and Plant Breeding"
+  - family-names: "Pausch"
+    given-names: "Johanna"
+    affiliation: "University of Bayreuth, Agroecology, Bayreuth Center of Ecology and Environmental Research (BayCEER)"
+  - family-names: "Hafner"
+    given-names: "Benjamin D."
+    affiliation: "Technical University of Munich, Chair of Soil Biophysics and Environmental Systems"
   - family-names: "Zarebanadkouki"
     given-names: "Mohsen"
-    affiliation: "Technical University of Munich"
-repository-code: "https://github.com/Tum-Soil-Biophysics/[repository]"
+    affiliation: "Technical University of Munich, Chair of Soil Biophysics and Environmental Systems"
+repository-code: "https://github.com/Tum-Soil-Biophysics/Gupta-et-al.-Soil-Hydraulic-Supply-Shapes-Maize-Drought-Responses-Across-Soil-Textures-New-Phytol"
 url: "https://www.lss.ls.tum.de/sbe/"
 license: MIT
-version: "1.0.0"
-date-released: "[YYYY-MM-DD]"
 keywords:
-  - "[keyword]"
+  - drought
+  - maize
+  - Zea mays
+  - matric flux potential
+  - soil hydraulic conductivity
+  - soil texture
+  - transpiration
+  - root traits
+  - rhizosheath
+  - soil-plant interactions
 # Add the related article once its DOI is known:
 # preferred-citation:
 #   type: article
 #   authors:
-#     - family-names: "[Family name]"
-#       given-names: "[Given name]"
-#   title: "[Article title]"
-#   journal: "[Journal]"
-#   year: [Year]
+#     - family-names: "Gupta"
+#       given-names: "Saniv"
+#   title: "Soil Hydraulic Supply Shapes Maize Drought Responses Across Soil Textures"
+#   journal: "New Phytologist"
+#   year: 2026
 #   doi: "[DOI]"
