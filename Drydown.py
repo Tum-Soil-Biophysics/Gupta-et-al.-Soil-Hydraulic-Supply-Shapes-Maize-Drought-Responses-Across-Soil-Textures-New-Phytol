@@ -13,13 +13,18 @@ from scipy.optimize import curve_fit
 from scipy import stats, integrate
 
 # ================================ SETTINGS ================================
-BASE_DIR = Path(__file__).resolve().parent     # repository folder
+try:
+    BASE_DIR = Path(__file__).resolve().parent              # folder that holds this script
+except NameError:                                            # run cell-by-cell (e.g. Spyder): use the working folder
+    BASE_DIR = Path.cwd()
 DATA_DIR = BASE_DIR / "Hyprob_data"     # HYPROP files (Rep*, Sandy2, Silt1)
 PLANT_DIR = BASE_DIR                    # NormTrans.xlsx
 OUT_DIR = BASE_DIR / "Output" / "Drydown"
 PLANT_FILE = "NormTrans.xlsx"
 POOLED_FILES = {"Sandy Loam": "Sandy2.xlsx", "Silt Loam": "Silt1.xlsx"}   # joint fits (not replicates)
 REP_GLOB = "Rep*.xls*"
+SAVE_EXTRA = False             # False: save only the paper outputs (Fig. 3, Figs S4-S5, Tables S1-S3)
+                               # True:  also save CSV/HTML versions, Tables S1b/S1c, per-plant thresholds, log
 SH_PAR, SH_STAT = "Fitting-Parameter value", "Fitting-Statistical analysis"
 SH_TH, SH_K = "Fitting-Retention \u0398(pF)", "Fitting-Conductivity K(pF)"
 BULK_DENSITY = {"Sandy Loam": 1.28, "Silt Loam": 1.14}   # g cm-3
@@ -267,7 +272,7 @@ def _rebuild_at_dry(p, pf_dry):
     return q
 
 def dry_limit_sensitivity(params, fits, log):
-    """Table S4c: whole analysis re-run with Phi referenced to each limit in DRY_LIMITS."""
+    """Table S1c: whole analysis re-run with Phi referenced to each limit in DRY_LIMITS."""
     rows = []
     for pf_dry in DRY_LIMITS:
         Yx = yardstick(thresholds_on_scales(fits, {s: _rebuild_at_dry(p, pf_dry) for s, p in params.items()}))
@@ -283,7 +288,7 @@ def dry_limit_sensitivity(params, fits, log):
     phicol = f"|d| {_txt('MFP phi')}"
     base = S[S["Dry limit (pF)"] == PF_DRY].set_index("Threshold")[phicol]
     S["\u0394 |d| \u03a6 vs reference"] = S[phicol] - S.Threshold.map(base)
-    log("\nDry-limit sensitivity (Table S4c): the ordering re-tested at each limit")
+    log("\nDry-limit sensitivity (Table S1c): the ordering re-tested at each limit")
     log(S.to_string(index=False, float_format=lambda v: f"{v:.4f}", formatters={"Dry limit (pF)": lambda v: f"{v:.1f}"}))
     nref = int(S.loc[S["Dry limit (pF)"] == PF_DRY, "n on \u03a6"].max())
     for pf_dry in DRY_LIMITS:
@@ -294,11 +299,11 @@ def dry_limit_sensitivity(params, fits, log):
             + (f", {lost} plant-threshold value{'s' if lost != 1 else ''} lost off the dry end" if lost else ""))
     if not S.order_holds.all():
         log("    NOTE: the ordering does NOT hold at every dry limit -- see the "
-            "rows above before citing Table S4c as a robustness check.")
+            "rows above before citing Table S1c as a robustness check.")
     return S
 
 def integration_audit(params, fits, log):
-    """Table S4: Phi at the mean threshold suction under 6 integration schemes; Table S4b: other dry limits."""
+    """Table S1: Phi at the mean threshold suction under 6 integration schemes; Table S1b: other dry limits."""
     thr_pf = {}
     for soil, p in params.items():
         g = fits[fits.Soil == soil]
@@ -332,7 +337,7 @@ def integration_audit(params, fits, log):
                       for sc, lab in labels.items()])
     cols = [c for c in A.columns if c != "Scheme"]
     A["Max deviation (%)"] = 100.0 * (A[cols].div(A[cols].iloc[0]) - 1.0).abs().max(axis=1)
-    log("\nIntegration audit (Table S4): phi [cm2/d] at the mean threshold suction")
+    log("\nIntegration audit (Table S1): phi [cm2/d] at the mean threshold suction")
     log(tostr(A, ".6f"))
     log(f"  maximum deviation from the reference scheme across all schemes and thresholds: "
         f"{A['Max deviation (%)'].max():.2e} % -> phi is independent of the integration scheme")
@@ -519,7 +524,7 @@ def wilcoxon_pairs(T, Y):
     return P, pd.DataFrame(rows)
 
 
-# ================================ 5. NATIVE-SPACE FITS (Fig 2) ================================
+# ================================ 5. NATIVE-SPACE FITS (Fig. S5) ================================
 NATIVE = [("VWC", "theta", +1), ("pF", "SMP", -1), ("logK", "K(h)", +1), ("logphi", "MFP phi", +1)]
 
 def rel_trans(g, fits):
@@ -706,7 +711,7 @@ def png_table(df, path, title, note="", floatfmt=None, red_cols=(), fontsize=8.0
     print(f"  wrote {path.name}")
 
 def per_genotype_table(PERGEN, log):
-    """Table S2: per-genotype soil separation (as in Fig 1e,f)."""
+    """Table S2: per-genotype soil separation (as in Fig. 3e,f)."""
     rows = []
     for thr in PERGEN.Threshold.unique():
         for gen in sorted(PERGEN.Genotype.unique()):
@@ -718,7 +723,7 @@ def per_genotype_table(PERGEN, log):
                     r[f"{sy} sep."], r[f"{sy} SE"], r[f"{sy} sig."] = q.dg, q.se, q.sig
             rows.append(r)
     G = pd.DataFrame(rows)
-    log("\nPer-genotype soil separation (Table S2), as plotted in Fig. 1e,f")
+    log("\nPer-genotype soil separation (Table S2), as plotted in Fig. 3e,f")
     log(tostr(G, ".3f"))
     n_sig = {_txt(nm): int((G[f"{_txt(nm)} sig."] != "ns").sum()) for _, nm in SCALES}
     log(f"  genotypes with a significant soil contrast (of {len(G)} genotype x threshold combinations): "
@@ -953,24 +958,24 @@ def figure2(COL, keep, out):
 
 
 # ================================ TABLE NOTES ================================
-S4_TITLE = "Table S4. Independence of the matric flux potential from the numerical integration scheme"
-S4C_TITLE = "Table S4c. Sensitivity of the reported ordering to the dry reference limit of the matric flux potential"
+S4_TITLE = "Table S1. Independence of the matric flux potential from the numerical integration scheme"
+S4C_TITLE = "Table S1c. Sensitivity of the reported ordering to the dry reference limit of the matric flux potential"
 S4_NOTE_HTML = ("&Phi; (cm<sup>2</sup> d<sup>-1</sup>) evaluated at the mean threshold suction of each soil, held "
                 "fixed across rows so every value is a like-for-like recomputation. Every scheme integrates the same "
                 "tabulated PDI conductivity function between the same limits and differs only in quadrature; the "
                 "last column is the largest relative deviation from the reference scheme across both soils and both "
                 "thresholds. All deviations are of order 10<sup>-3</sup>&nbsp;% or smaller, i.e. &Phi; is set by the "
                 "conductivity function and not by the numerical treatment of the integral. The choice of dry "
-                "reference limit is a separate matter and is reported in Table S4b.")
+                "reference limit is a separate matter and is reported in Table S1b.")
 S4B_NOTE = ("&Phi; is defined relative to a dry reference, so moving that reference changes &Phi; by definition, "
-            "not by numerical error; this is a different question from Table S4. Beyond the fitted range the "
+            "not by numerical error; this is a different question from Table S1. Beyond the fitted range the "
             "conductivity is extrapolated log-linearly at its terminal slope. The integral converges because the "
             "film term decays as h<sup>-a</sup> with a &gt; 1, so extending the limit to pF 8, 10 or 12 adds a "
             "vanishing tail; pF 4.2, the permanent-wilting point, instead truncates it. The tail removed is "
             "&int;K dh between the two limits, which does not depend on the threshold and so enters as a "
             "constant offset per soil -- which is why the percentage change is largest where &Phi; is smallest. "
             "Because the analysis uses log<sub>10</sub>&Phi; and compares soils, the quantity that bears on the "
-            "result is not this percentage but the change in the soil contrast, given in Table S4c.")
+            "result is not this percentage but the change in the soil contrast, given in Table S1c.")
 S4C_NOTE = ("The full analysis re-run with &Phi; referenced to each dry limit in turn; the pF %.1f row is the "
             "one reported in the paper. Raising the limit only lengthens the conductivity tail, so &theta;, h "
             "and K(h) cannot move and only |d| for &Phi;(h) responds. Lowering it to pF 4.2 truncates the "
@@ -983,13 +988,13 @@ S2_NOTE = ("Separation is the difference between soil means for that genotype, d
            "within-soil standard deviation of the corresponding scale; SE is its standard error. Significance "
            "is a Welch t-test of that genotype's sandy loam against its silt loam plants, Holm-corrected across "
            "the six genotypes within each threshold and scale. *** P < 0.001, ** P < 0.01, * P < 0.05, ns not "
-           "significant. These are the values plotted in Fig. 1e,f.")
+           "significant. These are the values plotted in Fig. 3e,f.")
 S4_NOTE_PNG = ("Phi (cm2 d-1) evaluated at the mean threshold suction of each soil, held fixed across rows so every "
                "value is a like-for-like recomputation; these are not the threshold values reported in Table 1, "
                "which average log10 Phi across plants. Every scheme integrates the same tabulated PDI conductivity "
                "function between the same limits and differs only in quadrature. All deviations are of order 1e-3 % "
                "or smaller: Phi is set by the conductivity function, not by the numerical treatment of the "
-               "integral. The choice of dry reference limit is a separate matter, reported in Table S4b.")
+               "integral. The choice of dry reference limit is a separate matter, reported in Table S1b.")
 S1_NOTE = ("All sandy x silt combinations of the replicate PDI fits, at both thresholds. order_holds is TRUE "
            "where Φ(h) < K(h) < h; supply_below_state is TRUE where both supply variables separate the soils "
            "less than both state variables. d_θ is constant across pairings because water-content thresholds do "
@@ -1021,7 +1026,7 @@ def main():
             f"n={g('n'):.4f} Ks={g('Ks'):.1f} tau={g('tau'):+.4f} omega={g('omega'):.3e} a={g('a'):+.4f}")
         log(f"              theta spans {p['th_dry']:.4f}-{p['th_wet']:.4f} over pF {PF_MIN:.1f} to {PF_DRY:.1f}")
     validate_model({**sets, **{f'pooled {k}': v for k, v in params.items()}}, log)
-    log("\n  FIG_CURVES = 'pooled': Fig 1 / Fig 2 / Table 1 use one joint fit per soil")
+    log("\n  FIG_CURVES = 'pooled': Fig. 3 / Fig. S5 / Table 1 use one joint fit per soil")
 
     log("\n[2] plant data")
     d = load_plant_data(PLANT_DIR)
@@ -1061,53 +1066,56 @@ def main():
     log(tostr(TAB1, ".4g"))
 
     log("\n[9] figures")
-    figure1(d, fits, T, Y, CI, PERGEN, OUT_DIR / "Fig1_soil_separation.png")
-    figure1f(PAIRS, WILC, OUT_DIR / "Fig1f_ordering_test.png")
-    figure2(COL, keep, OUT_DIR / "Fig2_collapse_test.png")
+    figure1(d, fits, T, Y, CI, PERGEN, OUT_DIR / "Fig3_soil_separation.png")
+    figure1f(PAIRS, WILC, OUT_DIR / "FigS4_ordering_test.png")
+    figure2(COL, keep, OUT_DIR / "FigS5_collapse_test.png")
 
-    log("\n[10] integration audit -> Table S4")
+    log("\n[10] integration audit -> Table S1")
     AUD, CONV = integration_audit(params, fits, log)
     DRY = dry_limit_sensitivity(params, fits, log)
-    for df, name in ((TAB1, "Table1_raw_thresholds"), (AUD, "TableS4_integration_audit"),
-                     (CONV, "TableS4b_upper_limit_convergence"), (DRY, "TableS4c_dry_limit_sensitivity")):
-        df.to_csv(OUT_DIR / f"{name}.csv", index=False)
     audfmt = {c: "{:.6f}" for c in AUD.columns if c != "Scheme"} | {"Max deviation (%)": "{:.2e}"}
-    write_html_table(AUD, OUT_DIR / "TableS4_integration_audit.html", S4_TITLE, note=S4_NOTE_HTML,
-                     highlight=("Max deviation (%)",), floatfmt=audfmt)
-    chg = "Change vs pF %.1f (%%)" % PF_DRY
-    tail = "Tail removed (cm<sup>2</sup> d<sup>-1</sup>)"
-    write_html_table(CONV.rename(columns={"upper_limit_pF": "Upper limit (pF)", "phi": "&Phi;", "tail_removed": tail,
-                                          "change_pct": chg, "film_exponent": "Film exponent a"}),
-                     OUT_DIR / "TableS4b_upper_limit_convergence.html",
-                     "Table S4b. Effect of the dry reference limit on the matric flux potential", note=S4B_NOTE,
-                     floatfmt={"&Phi;": "{:.6f}", tail: "{:.6f}", chg: "{:.4f}", "Film exponent a": "{:.3f}",
-                               "Upper limit (pF)": "{:.1f}"})
-    s4cfmt = {c: "{:.3f}" for c in DRY.columns if DRY[c].dtype.kind == "f"}
-    s4cfmt["Dry limit (pF)"] = "{:.1f}"
-    write_html_table(DRY, OUT_DIR / "TableS4c_dry_limit_sensitivity.html", S4C_TITLE, note=S4C_NOTE, floatfmt=s4cfmt,
-                     highlight=("order_holds", "supply_below_state"))
-    png_table(DRY, OUT_DIR / "TableS4c_dry_limit_sensitivity.png", S4C_TITLE,
-              note=re.sub(r"<[^>]+>", "", S4C_NOTE).replace("&Phi;", "Phi").replace("&theta;", "theta")
-              .replace("&lt;", "<").replace("&gt;", ">"),
-              floatfmt=s4cfmt, red_cols=("order_holds", "supply_below_state"))
-    COL.drop(columns=["sgn"]).to_csv(OUT_DIR / "TableS3_curve_separation.csv", index=False)
-    PAIR6.to_csv(OUT_DIR / "TableS1_curve_pairings.csv", index=False)
-    T.to_csv(OUT_DIR / "thresholds_per_plant.csv", index=False)
-    fits.to_csv(OUT_DIR / "linear_plateau_fits.csv", index=False)
+    if SAVE_EXTRA:                       # extra outputs, not in the paper (CSV/HTML versions, Tables S1b/S1c, raw values)
+        for df, name in ((TAB1, "Table1_raw_thresholds"), (AUD, "TableS1_integration_audit"),
+                         (CONV, "TableS1b_upper_limit_convergence"), (DRY, "TableS1c_dry_limit_sensitivity")):
+            df.to_csv(OUT_DIR / f"{name}.csv", index=False)
+        write_html_table(AUD, OUT_DIR / "TableS1_integration_audit.html", S4_TITLE, note=S4_NOTE_HTML,
+                         highlight=("Max deviation (%)",), floatfmt=audfmt)
+        chg = "Change vs pF %.1f (%%)" % PF_DRY
+        tail = "Tail removed (cm<sup>2</sup> d<sup>-1</sup>)"
+        write_html_table(CONV.rename(columns={"upper_limit_pF": "Upper limit (pF)", "phi": "&Phi;", "tail_removed": tail,
+                                              "change_pct": chg, "film_exponent": "Film exponent a"}),
+                         OUT_DIR / "TableS1b_upper_limit_convergence.html",
+                         "Table S1b. Effect of the dry reference limit on the matric flux potential", note=S4B_NOTE,
+                         floatfmt={"&Phi;": "{:.6f}", tail: "{:.6f}", chg: "{:.4f}", "Film exponent a": "{:.3f}",
+                                   "Upper limit (pF)": "{:.1f}"})
+        s4cfmt = {c: "{:.3f}" for c in DRY.columns if DRY[c].dtype.kind == "f"}
+        s4cfmt["Dry limit (pF)"] = "{:.1f}"
+        write_html_table(DRY, OUT_DIR / "TableS1c_dry_limit_sensitivity.html", S4C_TITLE, note=S4C_NOTE, floatfmt=s4cfmt,
+                         highlight=("order_holds", "supply_below_state"))
+        png_table(DRY, OUT_DIR / "TableS1c_dry_limit_sensitivity.png", S4C_TITLE,
+                  note=re.sub(r"<[^>]+>", "", S4C_NOTE).replace("&Phi;", "Phi").replace("&theta;", "theta")
+                  .replace("&lt;", "<").replace("&gt;", ">"),
+                  floatfmt=s4cfmt, red_cols=("order_holds", "supply_below_state"))
+        COL.drop(columns=["sgn"]).to_csv(OUT_DIR / "FigS5_curve_separation.csv", index=False)
+        PAIR6.to_csv(OUT_DIR / "TableS3_curve_pairings.csv", index=False)
+        T.to_csv(OUT_DIR / "thresholds_per_plant.csv", index=False)
+        fits.to_csv(OUT_DIR / "linear_plateau_fits.csv", index=False)
 
     log("\\n[11] supplementary tables as PNG")
     GEN = per_genotype_table(PERGEN, log)
-    GEN.to_csv(OUT_DIR / "TableS2_per_genotype_separation.csv", index=False)
+    if SAVE_EXTRA:
+        GEN.to_csv(OUT_DIR / "TableS2_per_genotype_separation.csv", index=False)
     png_table(GEN, OUT_DIR / "TableS2_per_genotype_separation.png",
               "Table S2. Separation between soils for each genotype, on each hydraulic scale", note=S2_NOTE,
               floatfmt={f"{_txt(nm)} {x}": "{:.2f}" for _, nm in SCALES for x in ("sep.", "SE")},
               red_cols=tuple(f"{_txt(nm)} sig." for _, nm in SCALES))
-    png_table(AUD, OUT_DIR / "TableS4_integration_audit.png", S4_TITLE, note=S4_NOTE_PNG, floatfmt=audfmt,
+    png_table(AUD, OUT_DIR / "TableS1_integration_audit.png", S4_TITLE, note=S4_NOTE_PNG, floatfmt=audfmt,
               red_cols=("Max deviation (%)",))
-    png_table(PAIR6, OUT_DIR / "TableS1_curve_pairings.png",
-              "Table S1. Soil separation for every pairing of replicate HYPROP fits", note=S1_NOTE,
+    png_table(PAIR6, OUT_DIR / "TableS3_curve_pairings.png",
+              "Table S3. Soil separation for every pairing of replicate HYPROP fits", note=S1_NOTE,
               floatfmt={c: "{:.2f}" for c in PAIR6.columns if PAIR6[c].dtype.kind == "f"})
-    (OUT_DIR / "stats_summary.txt").write_text("\n".join(LINES), encoding="utf-8")
+    if SAVE_EXTRA:
+        (OUT_DIR / "stats_summary.txt").write_text("\n".join(LINES), encoding="utf-8")
     print(f"\nAll outputs written to {OUT_DIR}")
 
 

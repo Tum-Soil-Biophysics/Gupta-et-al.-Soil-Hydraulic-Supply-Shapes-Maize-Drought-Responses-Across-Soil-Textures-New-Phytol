@@ -8,7 +8,11 @@ from scipy.interpolate import interp1d
 plt.close('all')
 
 # ========= Settings =========
-BASE = os.path.dirname(os.path.abspath(__file__))        # folder of this script (Input_main)
+try:
+    _HERE = os.path.dirname(os.path.abspath(__file__))      # folder that holds this script
+except NameError:                                            # run cell-by-cell (e.g. Spyder): use the working folder
+    _HERE = os.getcwd()
+BASE = _HERE                                                 # = Input_main/
 Path2MainDir = os.path.join(BASE, "Input_code2")      # Cam1/ and Cam2/; combined_df.xlsx saved here
 CAMPAIGN_DIRS = {'Campaign1': os.path.join(Path2MainDir, "Cam1"), 'Campaign2': os.path.join(Path2MainDir, "Cam2")}
 # HYPROP files: Input_main\Hyprob_data if it exists, else Data&code\Hyprob_data
@@ -280,7 +284,7 @@ use_rep = cam2 & c['Ksp'].isna() & c['hXylem_Ψx'].notna() & c['hLP_cam1_rep'].n
 c.loc[use_rep, 'Ksp'] = ksp(c.loc[use_rep, 'Trans_Midday'], c.loc[use_rep, 'hXylem_Ψx'], c.loc[use_rep, 'hLP_cam1_rep'])
 use_group = cam2 & c['Ksp'].isna() & c['hXylem_Ψx'].notna() & c['hLP_cam1_group'].notna()  # 2: Cam1 group mean
 c.loc[use_group, 'Ksp'] = ksp(c.loc[use_group, 'Trans_Midday'], c.loc[use_group, 'hXylem_Ψx'], c.loc[use_group, 'hLP_cam1_group'])
-c['Ksp_flag'] = np.nan
+c['Ksp_flag'] = None                   # text column (np.nan fails on pandas >= 3)
 c.loc[cam2 & c['Ksp'].notna() & ~use_rep & ~use_group, 'Ksp_flag'] = 'measured_cam2'
 c.loc[use_rep & c['Ksp'].notna(), 'Ksp_flag'] = 'filled_cam1_same_rep'
 c.loc[use_group & c['Ksp'].notna(), 'Ksp_flag'] = 'filled_cam1_group_mean'
@@ -307,7 +311,7 @@ c['hXylem_Ψx_div_Trans_Norm_LA'] = c['hXylem_Ψx'] / c['E_Norm']
 c['hXylem_Ψx_div_Trans_Norm_MaxTr'] = c['hXylem_Ψx'] / c['Trans_Norm_MaxTr']
 c['hLeaf_Diff'] = c['hXylem_Ψx'] - c['SMP_RETC']
 for col in c.columns:                                   # every non-text column numeric
-    if c[col].dtype != 'O':
+    if not (c[col].dtype == object or pd.api.types.is_string_dtype(c[col])):   # text columns (any pandas version) stay text
         c[col] = pd.to_numeric(c[col], errors='coerce')
 combined_df = c
 

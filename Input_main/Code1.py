@@ -6,7 +6,11 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 # ========= Paths =========
-BASE = os.path.dirname(os.path.abspath(__file__))        # folder of this script (Input_main)
+try:
+    _HERE = os.path.dirname(os.path.abspath(__file__))      # folder that holds this script
+except NameError:                                            # run cell-by-cell (e.g. Spyder): use the working folder
+    _HERE = os.getcwd()
+BASE = _HERE                                                 # = Input_main/
 INPUT_DIR = os.path.join(BASE, "Input_code1")       # shoot area, weight records, soil filling
 # HYPROP files: Input_main\Hyprob_data if it exists, else Data&code\Hyprob_data
 Path2Hyprop = next(d for d in (os.path.join(BASE, "Hyprob_data"), os.path.join(os.path.dirname(BASE), "Hyprob_data"), BASE)

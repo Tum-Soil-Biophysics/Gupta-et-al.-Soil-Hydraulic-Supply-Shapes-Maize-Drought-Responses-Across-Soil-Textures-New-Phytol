@@ -1,24 +1,28 @@
-
 import os, runpy
 import numpy as np
 import pandas as pd
 import matplotlib as _mpl
 
 # ================================ SETTINGS ================================
-BASE = os.path.dirname(os.path.abspath(__file__))        # repository folder
+try:
+    _HERE = os.path.dirname(os.path.abspath(__file__))      # folder that holds this script
+except NameError:                                            # run cell-by-cell (e.g. Spyder): use the working folder
+    _HERE = os.getcwd()
+BASE = _HERE                                                 # repository folder
 CODE_DIR = os.path.join(BASE, "Input_main")              # code1, code2 and their input files
 _find = lambda *names: next((os.path.join(CODE_DIR, n) for n in names if os.path.isfile(os.path.join(CODE_DIR, n))),
                             os.path.join(CODE_DIR, names[0]))
-PATH_CODE1 = _find("Code1.py", "code1.py")
-PATH_CODE2 = _find("Code2.py", "code2.py")
+PATH_CODE1 = _find("Code1.py", "code1.py", "code1_short.py", "code1_rev2.py")
+PATH_CODE2 = _find("Code2.py", "code2.py", "code2_short.py", "code2_rev2.py")
 OUT_BASE = os.path.join(BASE, "Output", "main")
 OUT_FINAL = os.path.join(OUT_BASE, "FinalResults")       # Excel with df_code1 / df_code2
-OUT_FOREST = os.path.join(OUT_BASE, "Plot5by2give")      # above-ground forest plots
-OUT_BELOW = os.path.join(OUT_BASE, "5by2_below")         # below-ground forest plots
-OUT_SOIL = os.path.join(OUT_BASE, "Soil_effect")         # soil-effect figures
-OUT_M5VSM3 = os.path.join(OUT_BASE, "M5vsM3")            # LowLate vs LowConst + Fig S7
-OUT_DRYDOWN = os.path.join(OUT_BASE, "drydown")
-for _d in (OUT_BASE, OUT_FINAL, OUT_FOREST, OUT_BELOW, OUT_SOIL, OUT_M5VSM3, OUT_DRYDOWN):
+OUT_ABOVE = os.path.join(OUT_BASE, "Drought_aboveground")  # Fig. S6, Table S4
+OUT_BELOW = os.path.join(OUT_BASE, "Drought_belowground")  # Fig. S7, Table S8
+OUT_SOIL = os.path.join(OUT_BASE, "Soil_effect")          # Fig. 4, Fig. S8, Tables S5-S7
+OUT_TIMING = os.path.join(OUT_BASE, "LowLate_vs_LowConst")  # LowLate vs LowConst: Fig. 5, Figs S9-S10, Table S9
+SAVE_EXTRA = False       # False: save only the paper outputs (Figs 4-5, Figs S6-S10, Tables S4-S9)
+                         # True:  also save the extra tables/figures (fold changes, other soil comparisons, Excel export)
+for _d in (OUT_BASE, OUT_ABOVE, OUT_BELOW, OUT_SOIL, OUT_TIMING) + ((OUT_FINAL,) if SAVE_EXTRA else ()):
     os.makedirs(_d, exist_ok=True)
 # publication fonts (every figure uses these)
 PUB_FS_BUMP, PUB_FIG_GROWTH = 2, 1.0
@@ -36,15 +40,16 @@ c1['_Date'] = pd.to_datetime(c1['Date'], errors='coerce').dt.normalize()
 in_nov = (c1['_Date'].dt.month == 11) & (c1['_Date'].dt.day.isin({28, 29, 30}))
 window_rows_28_30 = c1.loc[in_nov & (c1['_Date'].dt.year == int(c1.loc[in_nov, '_Date'].dt.year.max()))].copy()
 present_days_28_30 = sorted(window_rows_28_30['_Date'].dt.day.unique().tolist())
-with pd.ExcelWriter(os.path.join(OUT_FINAL, "df_code1_and_code2_outputs.xlsx"), engine='openpyxl') as writer:
-    df_code1.to_excel(writer, sheet_name='df_code1_full', index=False)
-    window_rows_28_30.drop(columns=['_Date'], errors='ignore').to_excel(writer, sheet_name='df_code1_Nov28_30', index=False)
-    df_code2.to_excel(writer, sheet_name='df_code2_full', index=False)
-    df_code2[df_code2['Cam'] == 'Cam2'].to_excel(writer, sheet_name='df_code2_Cam2', index=False)
-    for sheet in writer.sheets.values():                  # column width = longest entry (max 45)
-        for col_cells in sheet.columns:
-            width = max((len(str(c.value)) if c.value is not None else 0) for c in col_cells)
-            sheet.column_dimensions[col_cells[0].column_letter].width = min(width + 3, 45)
+if SAVE_EXTRA:                                            # Excel export of the prepared data (extra)
+    with pd.ExcelWriter(os.path.join(OUT_FINAL, "df_code1_and_code2_outputs.xlsx"), engine='openpyxl') as writer:
+        df_code1.to_excel(writer, sheet_name='df_code1_full', index=False)
+        window_rows_28_30.drop(columns=['_Date'], errors='ignore').to_excel(writer, sheet_name='df_code1_Nov28_30', index=False)
+        df_code2.to_excel(writer, sheet_name='df_code2_full', index=False)
+        df_code2[df_code2['Cam'] == 'Cam2'].to_excel(writer, sheet_name='df_code2_Cam2', index=False)
+        for sheet in writer.sheets.values():                  # column width = longest entry (max 45)
+            for col_cells in sheet.columns:
+                width = max((len(str(c.value)) if c.value is not None else 0) for c in col_cells)
+                sheet.column_dimensions[col_cells[0].column_letter].width = min(width + 3, 45)
 
 
 # ================================ SHARED STATISTICS + TABLE PICTURE ================================
@@ -66,6 +71,7 @@ from scipy import stats as _scistats
 TRANSFORMS = ("none", "log1p", "sqrt", "boxcox", "yeojohnson")
 GENO_ORDER = ['Alpenfex', 'Braunes Schindelmeiser', 'Pfarrkirchner', 'Benedictio KWS', 'Luigi CS', 'P8888']
 SOIL_COLORS = {"Silt Loam": "#8B5A2B", "Sandy Loam": "#C9A97C"}
+TREAT_COLORS = {"Int": "#FB6A4A", "Low": "#99000D"}     # forest plots: light red = IntConst/OptConst, dark red = LowConst/OptConst
 GENO_COLORS = {'Alpenfex': '#2E7D32', 'Braunes Schindelmeiser': '#66A861', 'Pfarrkirchner': '#A5D6A7',   # landraces green
                'P8888': '#5E3C99', 'Luigi CS': '#8E71C1', 'Benedictio KWS': '#D6C6EA'}                   # hybrids purple
 
@@ -334,6 +340,11 @@ def _inset_title(ax, label, title_str, fs_panel, fs_title, *_, align='left'):
         ax.text(x + dx, 0.97, title_str, transform=ax.transAxes, ha=ha, va='top', fontsize=fs_title, fontweight='bold',
                 clip_on=False, zorder=10)
 
+def _close_frame(ax, lw=1.2):
+    """Frame on all four sides, set per axis (a style loaded by code1/code2 can switch top/right off)."""
+    for sp in ax.spines.values():
+        sp.set_visible(True); sp.set_color("black"); sp.set_linewidth(lw)
+
 def _contrast_p(test_fit, design, rowA, rowB, dmatrix=True):
     """p of the model contrast rowA - rowB (dicts of factor levels) from `test_fit` (OLS or HC3 results)."""
     mk = lambda r: pd.DataFrame({**{k: [v] for k, v in r.items()}, "Y": [0.0]})
@@ -601,9 +612,9 @@ def plot_area_avg2830_and_tradeoff_anova(window_rows_M2, df_code2, out_dir):
     n_rows = len(panels)
     rc = {"font.size": FS_ALL, "axes.titlesize": FS_AXIS, "axes.labelsize": FS_AXIS, "xtick.labelsize": FS_ALL,
           "ytick.labelsize": FS_AXIS, "legend.fontsize": FS_LEGEND, "figure.titlesize": FS_AXIS}
-    ekw = dict(capsize=6, linestyle="none", ecolor="black", elinewidth=1.6, capthick=1.6, zorder=3)
+    ekw = dict(capsize=6, linestyle="none", elinewidth=1.6, capthick=1.6, zorder=3, markeredgecolor="black", markeredgewidth=0.7)
     with plt.rc_context(rc):
-        fig, axes = plt.subplots(n_rows, 2, figsize=(20.0 * fig_scale * 1.10, (4.2 * n_rows + 1.6) * fig_scale * PUB_FIG_PAD),
+        fig, axes = plt.subplots(n_rows, 2, figsize=(20.0 * fig_scale * 1.10, (4.8 * n_rows + 1.6) * fig_scale * PUB_FIG_PAD),
                                  constrained_layout=False)
         for r, (title, ratio_dict) in enumerate(panels):
             # x-limits from the data (+-SE), 1.0 always visible, extra room on the side where letters go
@@ -630,25 +641,26 @@ def plot_area_avg2830_and_tradeoff_anova(window_rows_M2, df_code2, out_dir):
                 if dfp is None or dfp.empty:
                     ax.text(0.5, 0.5, "No data", transform=ax.transAxes, ha="center", va="center", fontsize=FS_AXIS)
                     ax.set_yticks([]); ax.set_xlim(xlim)
-                    ax.grid(axis="x", linestyle=":", alpha=0.5)
+                    ax.grid(axis="x", linestyle=":", alpha=0.5); _close_frame(ax)
                     _inset_title(ax, label, f"{title} : {soil}", FS_PANEL, FS_AXIS)
                     continue
                 genes = dfp["Genotype"].tolist()
                 y = np.arange(len(genes))
                 r_mod, se_mod = dfp["r_mod"].to_numpy(float), dfp["se_mod"].to_numpy(float)
                 r_sev, se_sev = dfp["r_sev"].to_numpy(float), dfp["se_sev"].to_numpy(float)
-                sc = SOIL_COLORS.get(soil, "#888888")
-                ax.errorbar(r_mod, y + 0.15, xerr=se_mod, fmt="^", markersize=9, color=sc, label=r"Int$_{Const}$/Opt$_{Const}$", **ekw)
-                ax.errorbar(r_sev, y - 0.15, xerr=se_sev, fmt="s", markersize=10, color=sc, label=r"Low$_{Const}$/Opt$_{Const}$", **ekw)
+                # colour = treatment (soil is given by the panel column); error bars, stars and letters share the colour
+                ci, cl = TREAT_COLORS["Int"], TREAT_COLORS["Low"]
+                ax.errorbar(r_mod, y + 0.15, xerr=se_mod, fmt="^", markersize=9, color=ci, ecolor=ci, label=r"Int$_{Const}$/Opt$_{Const}$", **ekw)
+                ax.errorbar(r_sev, y - 0.15, xerr=se_sev, fmt="s", markersize=10, color=cl, ecolor=cl, label=r"Low$_{Const}$/Opt$_{Const}$", **ekw)
                 for i in range(len(genes)):
-                    for yi, ri, sei, p, key, dy, va in [(y[i] + 0.15, r_mod[i], se_mod[i], float(dfp.loc[i, "p_mod"]), "cld_mod", star_dy, "bottom"),
-                                                        (y[i] - 0.15, r_sev[i], se_sev[i], float(dfp.loc[i, "p_sev"]), "cld_sev", -star_dy, "top")]:
+                    for yi, ri, sei, p, key, dy, va, tc in [(y[i] + 0.15, r_mod[i], se_mod[i], float(dfp.loc[i, "p_mod"]), "cld_mod", star_dy, "bottom", ci),
+                                                            (y[i] - 0.15, r_sev[i], se_sev[i], float(dfp.loc[i, "p_sev"]), "cld_sev", -star_dy, "top", cl)]:
                         if _stars(p) and np.isfinite(ri):
-                            ax.text(ri, yi + dy, _stars(p), ha="center", va=va, fontsize=FS_AXIS, clip_on=True)
+                            ax.text(ri, yi + dy, _stars(p), ha="center", va=va, fontsize=FS_AXIS, color=tc, clip_on=True)
                         ltr, se_v = str(dfp.loc[i, key] or ""), (sei if np.isfinite(sei) else 0.0)
                         if ltr and np.isfinite(ri):         # letters on the far side from 1.0
                             ax.text((ri + se_v + margin) if ri >= 1.0 else (ri - se_v - margin), yi, ltr,
-                                    ha="left" if ri >= 1.0 else "right", va="center", fontsize=FS_AXIS, clip_on=True)
+                                    ha="left" if ri >= 1.0 else "right", va="center", fontsize=FS_AXIS, color=tc, clip_on=True)
                 ax.set_ylim(-0.85, (len(genes) - 1) + 0.15 + star_dy + 0.35 + 1.45)
                 ax.set_yticks(y)
                 ax.set_yticklabels(genes if c == 0 else [], fontsize=FS_AXIS)
@@ -656,21 +668,20 @@ def plot_area_avg2830_and_tradeoff_anova(window_rows_M2, df_code2, out_dir):
                 ax.grid(axis="x", linestyle=":", alpha=0.5)
                 ax.tick_params(axis="x", labelsize=FS_ALL, width=1.2, length=5)
                 ax.tick_params(axis="y", labelsize=FS_AXIS, width=1.2, length=5)
+                _close_frame(ax)
                 if r == n_rows - 1:
                     ax.set_xlabel(r"Relative change from Opt$_{Const}$", fontsize=FS_AXIS)
                 _inset_title(ax, label, f"{title} : {soil}", FS_PANEL, FS_AXIS)
-                if r == 0 and c == 0:
-                    ax.legend(handles=[Line2D([0], [0], marker="^", linestyle="none", markersize=9, color="black", label=r"Int$_{Const}$/Opt$_{Const}$"),
-                                       Line2D([0], [0], marker="s", linestyle="none", markersize=10, color="black", label=r"Low$_{Const}$/Opt$_{Const}$")],
+                if r == 0 and c == 0:              # treatment legend (no soil legend: soil is in every panel title)
+                    ax.legend(handles=[Line2D([0], [0], marker="^", linestyle="none", markersize=9, color=ci, markeredgecolor="black",
+                                              label=r"Int$_{Const}$/Opt$_{Const}$"),
+                                       Line2D([0], [0], marker="s", linestyle="none", markersize=10, color=cl, markeredgecolor="black",
+                                              label=r"Low$_{Const}$/Opt$_{Const}$")],
                               loc="lower right", fontsize=FS_LEGEND, frameon=True, framealpha=0.9)
-                if r == 0 and c == 1:
-                    ax.legend(handles=[Patch(facecolor=SOIL_COLORS[s], edgecolor="black", linewidth=0.8, label=s) for s in SOILS],
-                              loc="upper right", fontsize=FS_LEGEND, frameon=True, framealpha=0.9, handlelength=1.2, handletextpad=0.4,
-                              labelspacing=0.3)
         plt.tight_layout(rect=[0.02, 0.03, 0.995, 0.980], h_pad=2.6, w_pad=2.2)
         fig.canvas.draw()
         fig.suptitle(f"Forest Plots (4x2): IntConst/OptConst & LowConst/OptConst ({latest_year})", fontsize=FS_AXIS, y=0.998)
-        plt.savefig(os.path.join(out_dir, f"code1_forest_4x2_ratios_mod_sev_vs_opt_ANOVA_{tag}_{latest_year}.png"), bbox_inches="tight", dpi=300)
+        plt.savefig(os.path.join(out_dir, "FigS6_forest_aboveground.png"), bbox_inches="tight", dpi=300)
         plt.close(fig)
 
     # ---- Tables A1-A4 ----
@@ -701,8 +712,8 @@ def plot_area_avg2830_and_tradeoff_anova(window_rows_M2, df_code2, out_dir):
                                                          "Assump_OK": "Assump", "P_Group": "p(Treatment)", "P_Genotype": "p(Geno)",
                                                          "P_Group×Geno": "p(Int)", "Sig_effects": "Sig effects"})
     d["Parameter"] = d["Parameter"].apply(rename_par)
-    save_df_as_table_png(d, path("A1_FactorialANOVA"),
-                         title="Table A1. Two-way factorial ANOVA within soil (Int vs Opt; Low vs Opt; Low vs Int)",
+    save_df_as_table_png(d, os.path.join(out_dir, "TableS4_ANOVA_drought_aboveground.png"),
+                         title="Table S4. Two-way factorial ANOVA within soil (Int vs Opt; Low vs Opt; Low vs Int)",
                          footnote=("Per soil and comparison: Y ~ C(Group) * C(Genotype), replicate means. Assumptions: Shapiro/JB p≥0.05, "
                                    "BP p≥0.05. Fallback: HC3 robust Wald p-values (robust_fallback=True). CLD letters in plots = pairwise "
                                    "genotype contrasts from this model (capitals = IntConst, lowercase = LowConst)."),
@@ -717,7 +728,7 @@ def plot_area_avg2830_and_tradeoff_anova(window_rows_M2, df_code2, out_dir):
         "Genotype": "Geno", "Mean_Optimum": "Mean OptE", "Mean_Moderate": "Mean IntE", "Mean_Severe": "Mean LowE", "Ratio_M2_over_M1": "Int/Opt",
         "Ratio_M3_over_M1": "Low/Opt", "Delta_M2_minus_M1": "Δ(Int−Opt)", "Delta_M3_minus_M1": "Δ(Low−Opt)"})
     d2["Parameter"], d2["Geno"] = d2["Parameter"].apply(rename_par), d2["Geno"].apply(rename_geno)
-    save_df_as_table_png(d2, path("A2_FoldChanges"), title="Table A2. Genotype-wise means, ratios and deltas vs M1 (within soil)",
+    if SAVE_EXTRA: save_df_as_table_png(d2, path("A2_FoldChanges"), title="Table A2. Genotype-wise means, ratios and deltas vs M1 (within soil)",
                          footnote="Means from replicate means. Overall = mean of genotype means. Ratios = IntConst/OptConst or LowConst/OptConst; Δ = Int−Opt or Low−Opt.",
                          font_size=13, id_cols=["Panel", "Parameter", "Soil", "Geno"])
 
@@ -743,7 +754,7 @@ def plot_area_avg2830_and_tradeoff_anova(window_rows_M2, df_code2, out_dir):
                            "PctDiff_M2": "%Δ Int", "Mean_Severe": "Mean LowE", "AllGenMean_M3": "AllMean LowE", "Ratio_M3_vs_AllMean": "Ratio Low",
                            "PctDiff_M3": "%Δ Low"}).sort_values(["Parameter", "Soil", "Geno"]).reset_index(drop=True))
     s3["Parameter"], s3["Geno"] = s3["Parameter"].apply(rename_par), s3["Geno"].apply(rename_geno)
-    save_df_as_table_png(s3, path("A3_Genotype_vs_AllMean"),
+    if SAVE_EXTRA: save_df_as_table_png(s3, path("A3_Genotype_vs_AllMean"),
                          title="Table A3. Genotype deviation vs mean of genotype means (within soil), M2 and M3",
                          footnote="AllMean = equal-weight mean of genotype means. Ratio = Genotype/AllMean; %Δ = (Ratio−1)×100.",
                          font_size=13, id_cols=["Panel", "Parameter", "Soil", "Geno"])
@@ -765,12 +776,12 @@ def plot_area_avg2830_and_tradeoff_anova(window_rows_M2, df_code2, out_dir):
                            "eta2p": "η²p"}).sort_values(["Parameter", "Soil", "Comp"]).reset_index(drop=True))
     d4["Parameter"], d4["Comp"] = d4["Parameter"].apply(rename_par), d4["Comp"].astype(str)
     d4["Trt A"], d4["Trt B"] = d4["Trt A"].apply(treat_short), d4["Trt B"].apply(treat_short)
-    save_df_as_table_png(d4, path("A4_Overall_EqualWeightGenotypes"),
+    if SAVE_EXTRA: save_df_as_table_png(d4, path("A4_Overall_EqualWeightGenotypes"),
                          title="Table A4. Overall drought comparisons (equal-weight genotype means), per soil",
                          footnote="Equal-weight genotypes: genotype means per treatment, blocked ANOVA Y ~ C(Genotype) + C(Treat2) testing C(Treat2).",
                          font_size=13, id_cols=["Panel", "Parameter", "Soil", "Comp"])
 
-plot_area_avg2830_and_tradeoff_anova(window_rows_28_30, df_code2, OUT_FOREST)
+plot_area_avg2830_and_tradeoff_anova(window_rows_28_30, df_code2, OUT_ABOVE)
 
 
 # ================================ [FOREST-BELOW] root-trait forest plots (Cam2) + Tables B1-B4 ================================
@@ -950,11 +961,12 @@ def plot_forest_6subplots_cam2(df_code2, outdir=OUT_BELOW, metrics=B_METRICS):
     # ---- forest plot (one row per trait, one column per soil) ----
     rc = {"font.size": FS_ALL, "axes.titlesize": FS_AXIS, "axes.labelsize": FS_AXIS, "xtick.labelsize": FS_ALL,
           "ytick.labelsize": FS_AXIS, "legend.fontsize": FS_LEGEND, "figure.titlesize": FS_AXIS}
-    ekw = dict(capsize=6, linestyle='none', ecolor='black', elinewidth=1.6, capthick=1.6, zorder=3)
+    ekw = dict(capsize=6, linestyle='none', elinewidth=1.6, capthick=1.6, zorder=3, markeredgecolor='black', markeredgewidth=0.7)
+    star_dy = 0.115                                    # IntConst stars above the triangle, LowConst stars below the square
     with plt.rc_context(rc):
         plt.close('all')
         n_rows = len(metrics)
-        fig, axes = plt.subplots(n_rows, 2, figsize=(20.0 * FIG_SCALE * 1.10, (3.2 * n_rows + 1.6) * FIG_SCALE * PUB_FIG_PAD), constrained_layout=False)
+        fig, axes = plt.subplots(n_rows, 2, figsize=(20.0 * FIG_SCALE * 1.10, (4.8 * n_rows + 1.6) * FIG_SCALE * PUB_FIG_PAD), constrained_layout=False)
         for r, col in enumerate(metrics):
             vals = [v for soil in (SOIL_SILT, SOIL_SAND) for d in (DL_CONT, DL_INT) if info[col][soil]["r"][d].size
                     for v in (np.abs(info[col][soil]["r"][d] - 1.0) + np.nan_to_num(info[col][soil]["se"][d], nan=0.0)).tolist() if np.isfinite(v)]
@@ -967,47 +979,49 @@ def plot_forest_6subplots_cam2(df_code2, outdir=OUT_BELOW, metrics=B_METRICS):
                 ax.axvline(1.0, color='black', linewidth=1.2, zorder=0)
                 if not genes:
                     ax.text(0.5, 0.5, "No data", transform=ax.transAxes, ha='center', va='center', fontsize=FS_AXIS)
-                    ax.set_yticks([]); ax.set_xlim(xlim); ax.grid(axis='x', linestyle=':', alpha=0.5)
+                    ax.set_yticks([]); ax.set_xlim(xlim); ax.grid(axis='x', linestyle=':', alpha=0.5); _close_frame(ax)
                     ax.tick_params(axis="x", labelsize=FS_ALL, width=1.2, length=5)
                     _inset_title(ax, label, f"{B_LABEL[col]} : {soil}", FS_PANEL, FS_AXIS)
                     continue
                 y = np.arange(len(genes))
-                sc = SOIL_COLORS.get(soil, '#888888')
-                ax.errorbar(it["r"][DL_INT], y + 0.15, xerr=it["se"][DL_INT], fmt='^', markersize=9, color=sc, label=r'Int$_{Const}$/Opt$_{Const}$', **ekw)
-                ax.errorbar(it["r"][DL_CONT], y - 0.15, xerr=it["se"][DL_CONT], fmt='s', markersize=10, color=sc, label=r'Low$_{Const}$/Opt$_{Const}$', **ekw)
+                # colour = treatment (soil is given by the panel column); error bars, stars and letters share the colour
+                ci, cl = TREAT_COLORS["Int"], TREAT_COLORS["Low"]
+                ax.errorbar(it["r"][DL_INT], y + 0.15, xerr=it["se"][DL_INT], fmt='^', markersize=9, color=ci, ecolor=ci, label=r'Int$_{Const}$/Opt$_{Const}$', **ekw)
+                ax.errorbar(it["r"][DL_CONT], y - 0.15, xerr=it["se"][DL_CONT], fmt='s', markersize=10, color=cl, ecolor=cl, label=r'Low$_{Const}$/Opt$_{Const}$', **ekw)
                 for i, g in enumerate(genes):
-                    for d, dy, comp, case in ((DL_INT, 0.15, "Int vs Opt", str.upper), (DL_CONT, -0.15, "Low vs Opt", str.lower)):
+                    for d, dy, comp, case, sdy, sva, tc in ((DL_INT, 0.15, "Int vs Opt", str.upper, star_dy, 'bottom', ci),
+                                                            (DL_CONT, -0.15, "Low vs Opt", str.lower, -star_dy, 'top', cl)):
                         rr, ss = it["r"][d], it["se"][d]
                         rv = rr[i] if i < len(rr) else np.nan
                         sv = ss[i] if (i < len(ss) and np.isfinite(ss[i])) else 0.0
                         st = _stars(it["stars"][comp].get(str(g), np.nan))
                         if st and np.isfinite(rv):
-                            ax.text(rv, y[i] + dy + 0.22, st, ha='center', va='bottom', fontsize=FS_AXIS)
+                            ax.text(rv, y[i] + dy + sdy, st, ha='center', va=sva, fontsize=FS_AXIS, color=tc)
                         ltr = case(it["cld"][d].get(g, "") or "")
                         if ltr and np.isfinite(rv):
                             ax.text((rv + sv + margin) if rv >= 1.0 else (rv - sv - margin), y[i] + dy, ltr, ha='left' if rv >= 1.0 else 'right',
-                                    va='center', fontsize=FS_AXIS)
+                                    va='center', fontsize=FS_AXIS, color=tc)
                 ax.set_xlim(xlim); ax.grid(axis='x', linestyle=':', alpha=0.5)
-                ax.set_ylim(-0.85, (len(genes) - 1) + 0.15 + 0.22 + 0.35 + 1.45)
+                ax.set_ylim(-0.85, (len(genes) - 1) + 0.15 + star_dy + 0.35 + 1.45)
                 ax.set_yticks(y)
                 ax.set_yticklabels(genes if c == 0 else [], fontsize=FS_AXIS)
                 ax.tick_params(axis="x", labelsize=FS_ALL, width=1.2, length=5)
                 ax.tick_params(axis="y", labelsize=FS_AXIS, width=1.2, length=5)
+                _close_frame(ax)
                 if r == n_rows - 1:
                     ax.set_xlabel(r"Relative change from Opt$_{Const}$", fontsize=FS_AXIS)
                 _inset_title(ax, label, f"{B_LABEL[col]} : {soil}", FS_PANEL, FS_AXIS)
-                if r == 0 and c == 0:
-                    ax.legend(handles=[Line2D([0], [0], marker='^', linestyle='none', markersize=9, color='black', label=r'Int$_{Const}$/Opt$_{Const}$'),
-                                       Line2D([0], [0], marker='s', linestyle='none', markersize=10, color='black', label=r'Low$_{Const}$/Opt$_{Const}$')],
+                if r == 0 and c == 0:              # treatment legend (no soil legend: soil is in every panel title)
+                    ax.legend(handles=[Line2D([0], [0], marker='^', linestyle='none', markersize=9, color=ci, markeredgecolor='black',
+                                              label=r'Int$_{Const}$/Opt$_{Const}$'),
+                                       Line2D([0], [0], marker='s', linestyle='none', markersize=10, color=cl, markeredgecolor='black',
+                                              label=r'Low$_{Const}$/Opt$_{Const}$')],
                               loc='lower right', fontsize=FS_LEGEND, frameon=True, framealpha=0.9)
-                if r == 0 and c == 1:
-                    ax.legend(handles=[Patch(facecolor=SOIL_COLORS[s], edgecolor='black', linewidth=0.8, label=s) for s in (SOIL_SILT, SOIL_SAND)],
-                              loc='upper right', fontsize=FS_LEGEND, frameon=True, framealpha=0.9, handlelength=1.2, handletextpad=0.4, labelspacing=0.3)
         fig.suptitle("Forest plots (Cam=Cam2): IntConst/OptConst & LowConst/OptConst", fontsize=FS_AXIS, y=0.998)
         plt.tight_layout(rect=[0.02, 0.03, 0.995, 0.980], h_pad=2.6, w_pad=2.2)
         fig.canvas.draw()
         tag = "_".join(metrics)
-        fig.savefig(os.path.join(outdir, f"Cam2_ForestPlots_{tag}_ANOVA.png"), dpi=300, bbox_inches='tight'); plt.close(fig)
+        fig.savefig(os.path.join(outdir, "FigS7_forest_belowground.png"), dpi=300, bbox_inches='tight'); plt.close(fig)
 
     # ---- Tables B1-B4 ----
     def fmt_cols(d, spec):
@@ -1024,7 +1038,7 @@ def plot_forest_6subplots_cam2(df_code2, outdir=OUT_BELOW, metrics=B_METRICS):
            "P_Group×Geno", "Sig_effects"]].rename(columns={"Transform": "Transf", "Method": "Infer", "p_norm": "p(norm)", "p_hetero": "p(BP)",
                                                          "Assump_OK": "Assump", "P_Group": "p(Treatment)", "P_Genotype": "p(Geno)",
                                                          "P_Group×Geno": "p(Int)", "Sig_effects": "Sig effects"})
-    save_df_as_table_png(d, path("B1_FactorialANOVA"), title="Table B1. Two-way factorial ANOVA within soil (Int vs Opt; Low vs Opt; Low vs Int)",
+    save_df_as_table_png(d, os.path.join(outdir, "TableS8_ANOVA_drought_belowground.png"), title="Table S8. Two-way factorial ANOVA within soil (Int vs Opt; Low vs Opt; Low vs Int)",
                          footnote=("Per Soil × Parameter × Comparison: Y ~ C(Group)*C(Genotype) on replicate means. Shapiro/JB p≥0.05; BP p≥0.05. "
                                    "If assumptions failed: HC3 robust Wald p-values. Asterisks in plot = within-genotype Group contrasts. "
                                    "CLD letters = pairwise genotype contrasts (UPPERCASE=IntConst, lowercase=LowConst)."),
@@ -1035,7 +1049,7 @@ def plot_forest_6subplots_cam2(df_code2, outdir=OUT_BELOW, metrics=B_METRICS):
     d2["_k"] = d2["Genotype"].apply(lambda g: (0 if "All genotypes" in str(g) else 1, str(g)))
     d2 = d2.sort_values(["Parameter", "Soil", "_k", "Genotype"]).drop(columns=["_k"]).reset_index(drop=True)
     d2.insert(0, "Panel", add_panel(d2))
-    save_df_as_table_png(d2, path("B2_FoldChanges_vs_OptConst"), title="Table B2. Means, ratios (fold-change), and deltas vs OptConst within soil",
+    if SAVE_EXTRA: save_df_as_table_png(d2, path("B2_FoldChanges_vs_OptConst"), title="Table B2. Means, ratios (fold-change), and deltas vs OptConst within soil",
                          footnote="Means from replicate means (Rep-level). Overall row: mean of genotype means (equal weight). Ratio < 1 = reduction vs OptConst.",
                          id_cols=["Panel", "Parameter", "Soil", "Genotype"])
     base = fold_df[~fold_df["Genotype"].astype(str).str.contains("All genotypes", na=False)].copy()
@@ -1056,7 +1070,7 @@ def plot_forest_6subplots_cam2(df_code2, outdir=OUT_BELOW, metrics=B_METRICS):
               "Ratio Low", "%Δ Low", "Dir Low", "nG_M2", "nG_M3"]]
           .rename(columns={"AllMean_M2": "AllMean IntE", "AllMean_M3": "AllMean LowE", "nG_M2": "nG Int", "nG_M3": "nG Low"})
           .sort_values(["Parameter", "Soil", "Genotype"]).reset_index(drop=True))
-    save_df_as_table_png(s3, path("B3_Genotype_vs_AllMean_IntLow"),
+    if SAVE_EXTRA: save_df_as_table_png(s3, path("B3_Genotype_vs_AllMean_IntLow"),
                          title="Table B3. Genotype deviation vs mean of genotype means (within soil), IntConst and LowConst",
                          footnote="AllMean = mean of genotype means (equal-weight). Ratio = Genotype/AllMean; %Δ = (Ratio−1)×100. Int=IntConst, Low=LowConst.",
                          id_cols=["Panel", "Parameter", "Soil", "Genotype"])
@@ -1068,7 +1082,7 @@ def plot_forest_6subplots_cam2(df_code2, outdir=OUT_BELOW, metrics=B_METRICS):
     fmt_cols(d4, [("Mean A", 4), ("Mean B", 4), ("Diff", 4)])
     d4["Panel"] = add_panel(d4)
     d4 = d4[["Panel", "Parameter", "Soil", "Comp", "nG", "Mean A", "Mean B", "Diff", "Transf", "Infer", "p(norm)", "p(BP)", "Assump", "p", "η²p"]]
-    save_df_as_table_png(d4, path("B4_OverallBlockedANOVA_IntLow"), title="Table B4. Overall drought contrasts (equal-weight genotype means), per soil",
+    if SAVE_EXTRA: save_df_as_table_png(d4, path("B4_OverallBlockedANOVA_IntLow"), title="Table B4. Overall drought contrasts (equal-weight genotype means), per soil",
                          footnote=("Within each Soil × Parameter, genotype means computed per drought level (equal weight). Blocked ANOVA: "
                                    "Y ~ C(Genotype) + C(Treat2), testing C(Treat2). Comp: Int vs Opt = IntConst vs OptConst; Low vs Opt = LowConst vs OptConst."),
                          id_cols=["Panel", "Parameter", "Soil", "Comp"])
@@ -1322,8 +1336,11 @@ PSI_YL = "Xylem water potential,\n" + r"$h_{\mathrm{x,md}}$ (kPa)"
 PSI_PT = r"Xylem water potential, $h_{\mathrm{x,md}}$ (kPa)"
 
 def soil_effect(df_code2, window_rows, out_dir, lab2, lab3, disp2, disp3, leg2, leg3, subfolder, treat2="Moderate Drought",
-                treat3="Moderate Drought", psi_ylabel=PSI_YL, psi_paneltitle=PSI_PT, tag="AvgD28_30"):
-    """Groups lab2 = Silt Loam + treat2 and lab3 = Sandy Loam + treat3: 9-panel figure + Tables C1, C2, then the collapsed figure."""
+                treat3="Moderate Drought", psi_ylabel=PSI_YL, psi_paneltitle=PSI_PT, tag="AvgD28_30", paper=None):
+    """Groups lab2 = Silt Loam + treat2 and lab3 = Sandy Loam + treat3: 9-panel figure + Tables C1, C2, then the collapsed figure.
+    paper: optional dict of manuscript file names / labels for the outputs that appear in the paper
+           (keys 'genotype_fig', 'collapsed_fig', 'anova_table', 'anova_label')."""
+    paper = paper or {}
     FS, FIG_SCALE = int(PUB_FS_TICK), 1.30 * PUB_FIG_GROWTH
     _FS = _fs(FIG_SCALE); rc_fig = _rc(FS, _FS)
     out_dir = str(Path(os.path.join(out_dir, subfolder)).resolve()); Path(out_dir).mkdir(parents=True, exist_ok=True)
@@ -1447,11 +1464,14 @@ def soil_effect(df_code2, window_rows, out_dir, lab2, lab3, disp2, disp3, leg2, 
                   borderaxespad=_FS["legend_borderaxespad"], handlelength=_FS["legend_handlelength"],
                   handletextpad=_FS["legend_handletextpad"], labelspacing=_FS["legend_labelspacing"], borderpad=0.25, columnspacing=0.6)
 
-    def finish(fig, axes, name):
+    def finish(fig, axes, name, paper_name=None):
+        """Save under the paper name; figures not in the paper only when SAVE_EXTRA."""
+        if not (paper_name or SAVE_EXTRA):
+            plt.close(fig); return
         fig.align_ylabels(axes)
         _relax_spacing(fig, axes, 3, True, 0.10, 1.8)
         _relax_spacing(fig, axes, 3, False, 0.12, 1.2)
-        fig.savefig(os.path.join(out_dir, _sname(name)), dpi=300, bbox_inches="tight"); plt.show()
+        fig.savefig(os.path.join(out_dir, _sname(paper_name or name)), dpi=300, bbox_inches="tight"); plt.show()
 
     # ---- figure 1: per genotype ----
     with plt.rc_context(rc_fig):
@@ -1464,7 +1484,7 @@ def soil_effect(df_code2, window_rows, out_dir, lab2, lab3, disp2, disp3, leg2, 
         for i, (ax, (pcode, title, ylabel, df_p, ptag)) in enumerate(zip(axes, panels)):
             plot_panel(ax, pcode, title, ylabel, df_p, ptag, show_x=(i // ncol == nrow - 1) or (not full and i // ncol == nrow - 2))
         legend(axes[0])
-        finish(fig, axes, f"Cam2_{lab2}_vs_{lab3}_SoilEffect_8panel_{tag}.png")
+        finish(fig, axes, f"Cam2_{lab2}_vs_{lab3}_SoilEffect_8panel_{tag}.png", paper.get("genotype_fig"))
 
     # ---- Table C1 (ANOVA) and C2 (fold change) ----
     d = pd.DataFrame(anova_rows).sort_values("Panel").reset_index(drop=True)
@@ -1476,14 +1496,14 @@ def soil_effect(df_code2, window_rows, out_dir, lab2, lab3, disp2, disp3, leg2, 
            "eta2p_Group", "eta2p_Geno", "eta2p_Int", "Sig_effects"]].rename(columns={
         "n": "N", "Transform": "Transf", "Inference": "Infer", "p_norm": "p(norm)", "p_BP": "p(BP)", "p_Group": "p(Treatment)",
         "p_Geno": "p(Geno)", "p_Int": "p(Int)", "eta2p_Group": "η²p(G)", "eta2p_Geno": "η²p(Geno)", "eta2p_Int": "η²p(Int)", "Sig_effects": "Sig effects"})
-    _save_table(d, os.path.join(out_dir, _sname(f"Table_C1_SoilEffect_ANOVA_{lab2}_vs_{lab3}_{tag}.png")),
-                f"Table C1. Soil effect ANOVA (auto-transform + HC3 fallback): {disp2} vs {disp3} (Cam2)",
+    _save_table(d, os.path.join(out_dir, _sname(paper.get("anova_table", f"Table_C1_SoilEffect_ANOVA_{lab2}_vs_{lab3}_{tag}.png"))),
+                f"{paper.get('anova_label', 'Table C1')}. Soil effect ANOVA (auto-transform + HC3 fallback): {disp2} vs {disp3} (Cam2)",
                 (f"Group definitions: {disp2}=Silt Loam+{treat2}; {disp3}=Sandy Loam+{treat3}. Model: Y ~ C(Group)*C(Genotype). "
                  "Assumptions: Shapiro/JB p≥0.05, BP p≥0.05. Fallback (robust_fallback=True): HC3 robust p-values. "
                  "CLD letters and genotype-specific asterisks are derived from this same factorial model via linear contrasts (Holm-adjusted for CLD)."),
                 id_cols=["Panel", "Parameter"])
     d2 = pd.DataFrame(fold_rows)
-    if not d2.empty:
+    if SAVE_EXTRA and not d2.empty:                 # Table C2 (fold changes): extra
         for c, nd in [(f"Mean_{lab2}", 4), (f"Mean_{lab3}", 4), ("Ratio_M3_over_M2", 3), ("Delta_M3_minus_M2", 4), ("Percent_change_%", 1)]:
             d2[c] = pd.to_numeric(d2[c], errors="coerce").apply(lambda x: _ff(x, nd) if np.isfinite(x) else "")
         d2["_k"] = d2["Genotype"].apply(lambda g: (0 if str(g) == "All genotypes" else 1, str(g)))
@@ -1550,16 +1570,21 @@ def soil_effect(df_code2, window_rows, out_dir, lab2, lab3, disp2, disp3, leg2, 
             ax.tick_params(axis="x", width=_FS["tick_width"], length=_FS["tick_length"], direction="inout", labelsize=PUB_FS_AXIS)
             _inset_label(ax, f"({chr(97 + i)})", PUB_FS_PANEL)
         legend(axes[0])
-        finish(fig, axes, f"Cam2_{lab2}_vs_{lab3}_SoilEffect_8panel_COLLAPSED_{tag}.png")
+        finish(fig, axes, f"Cam2_{lab2}_vs_{lab3}_SoilEffect_8panel_COLLAPSED_{tag}.png", paper.get("collapsed_fig"))
 
 # [SOIL-INT] IntSilt vs IntSandy, [SOIL-SEV] LowSilt vs LowSandy, [SOIL-MOD] IntSilt vs LowSandy
 soil_effect(df_code2, window_rows_28_30, OUT_SOIL, "IntSilt", "IntSandy", r'Int$_{\mathrm{Silt}}$', r'Int$_{\mathrm{Sandy}}$',
-            r'Int$_{\mathrm{Silt}}$', r'Int$_{\mathrm{Sandy}}$', "int_vs_int")
+            r'Int$_{\mathrm{Silt}}$', r'Int$_{\mathrm{Sandy}}$', "int_vs_int",
+            paper={"anova_table": "TableS5_ANOVA_soil_IntSilt_vs_IntSandy.png", "anova_label": "Table S5"})
 soil_effect(df_code2, window_rows_28_30, OUT_SOIL, "LowSilt", "LowSandy", r'Low$_{\mathrm{Silt}}$', r'Low$_{\mathrm{Sandy}}$',
             r'Low$_{\mathrm{Silt}}$', r'Low$_{\mathrm{Sandy}}$', "low_vs_low", treat2="Severe Drought", treat3="Severe Drought",
-            psi_ylabel=PSI_PT)
+            psi_ylabel=PSI_PT,
+            paper={"anova_table": "TableS6_ANOVA_soil_LowSilt_vs_LowSandy.png", "anova_label": "Table S6"})
 soil_effect(df_code2, window_rows_28_30, OUT_SOIL, "IntSilt", "LowSandy", r'Int$_{\mathrm{Silt}}$', r'Low$_{\mathrm{Sandy}}$',
-            r'Int$_{\mathrm{Silt}}$', r'Low$_{\mathrm{Sandy}}$', "", treat3="Severe Drought", psi_paneltitle=PSI_YL)
+            r'Int$_{\mathrm{Silt}}$', r'Low$_{\mathrm{Sandy}}$', "", treat3="Severe Drought", psi_paneltitle=PSI_YL,
+            paper={"genotype_fig": "FigS8_soil_IntSilt_vs_LowSandy_per_genotype.png",
+                   "collapsed_fig": "Fig4_soil_IntSilt_vs_LowSandy.png",
+                   "anova_table": "TableS7_ANOVA_soil_IntSilt_vs_LowSandy.png", "anova_label": "Table S7"})
 
 
 # ================================ [M5-M3] LowLate vs LowConst: 6-panel figure + supplementary tables ================================
@@ -1773,7 +1798,7 @@ def _fc_table(rep_df, scol, gcol, dcol, vcol, soils, late_lbl, sev_lbl):
                         f"Ratio_{LAB_M3}/{LAB_M5}": mm3 / mm5 if ok1 else np.nan, "Percent_change_%": 100. * (mm3 - mm5) / mm5 if ok1 else np.nan})
     return pd.concat([pd.DataFrame(overall), wide], ignore_index=True) if overall else wide
 
-def combined_cam2_sixpanel(df_code2, window_rows1, outdir=OUT_M5VSM3, xlim_tradeoff=(0., 0.0025)):
+def combined_cam2_sixpanel(df_code2, window_rows1, outdir=OUT_TIMING, xlim_tradeoff=(0., 0.0025)):
     FIG_SCALE = 1.30 * PUB_FIG_GROWTH
     s2, g2, r2, c2, d2, hx = 'Soil', 'Genotype', 'Rep', 'Cam', 'DroughtLevel', 'hXylem_Ψx'
     s1, g1, r1, d1 = 'Soil', 'Genotype', 'Replicate', 'Drought Category'
@@ -1822,7 +1847,7 @@ def combined_cam2_sixpanel(df_code2, window_rows1, outdir=OUT_M5VSM3, xlim_trade
         axes[2, 1].legend([dot('o', GENO_COLORS_M5.get(g, '#777'), g) for g in genos] + [dot('o', '#777', DISP_M5), dot('s', '#777', DISP_M3)],
                           list(genos) + [DISP_M5, DISP_M3], loc='upper right', title="Genotype & treatment", borderaxespad=0.2,
                           handlelength=1.0, handletextpad=0.4, labelspacing=0.3, **leg)
-        fig.savefig(os.path.join(outdir, f"Cam2_Combined_6panel_hXylemPsi_ShootArea_Tradeoff_{LAB_M5}_vs_{LAB_M3}_ANOVA.png"), dpi=300, bbox_inches='tight')
+        fig.savefig(os.path.join(outdir, "Fig5_drought_timing_LowLate_vs_LowConst.png"), dpi=300, bbox_inches='tight')
         plt.close(fig)
 
     # ---- supplementary tables ----
@@ -1838,13 +1863,14 @@ def combined_cam2_sixpanel(df_code2, window_rows1, outdir=OUT_M5VSM3, xlim_trade
     da["N"] = da["N"].apply(_fi)
     da.insert(0, "Panel", da.apply(lambda r: panel_for(r["Parameter"], r["Soil"]), axis=1))
     _save_table_m5(da[["Panel", "Parameter", "Soil", "N", "Transf", "Infer", "p(norm)", "p(BP)", "Assump", "p(Treatment)", "p(Geno)", "p(Int)", "Sig effects"]],
-                   os.path.join(outdir, f"SUPP_Table_ANOVA_{LAB_M5}_vs_{LAB_M3}_within_soil.png"),
-                   f"Supplementary Table. Two-way ANOVA within soil ({DISP_M5} vs {DISP_M3}): Treatment, Genotype, Treatment×Genotype",
+                   os.path.join(outdir, "TableS9_ANOVA_drought_timing.png"),
+                   f"Table S9. Two-way ANOVA within soil ({DISP_M5} vs {DISP_M3}): Treatment, Genotype, Treatment×Genotype",
                    f"Model: Value ~ Treatment * Genotype. {DISP_M3}=LowConst, {DISP_M5}=LowLate. Standard ANOVA if normality+BP pass; else transforms; else HC3 robust.",
                    id_cols=["Panel", "Parameter", "Soil"])
     for rdf, sc, gc, dc, vc, pname, fname in [(rep_hx, s2, g2, d2, hx, "hXylem", "hXylemPsi"), (rep_area, s1, g1, d1, "Area", "Shoot Area", "ShootArea"),
                                               (tmp_t, s1, g1, d1, "Trans_for_norm", "Transpiration", "Transpiration"),
                                               (tmp_t, s1, g1, d1, "NormTrans", "Trans_Norm", "NormTrans")]:
+        if not SAVE_EXTRA: break                     # fold-change tables: extra
         fc = _fc_table(rdf, sc, gc, dc, vc, soils, DL_LATE, DL_SEV).rename(columns={sc: "Soil", gc: "Genotype"})
         for col in [f"Mean_{LAB_M5}", f"SE_{LAB_M5}", f"Mean_{LAB_M3}", f"SE_{LAB_M3}"]:
             fc[col] = pd.to_numeric(fc[col], errors="coerce").map(lambda x: _ff(x, 4))
@@ -1863,7 +1889,7 @@ def combined_cam2_sixpanel(df_code2, window_rows1, outdir=OUT_M5VSM3, xlim_trade
 combined_cam2_sixpanel(df_code2, window_rows_28_30)
 
 
-# ================================ [DRYDOWN] Fig S7: K(h) + MFP -> transpiration, per genotype, Silt Loam ================================
+# ================================ [DRYDOWN] Fig. S9: K(h) + MFP -> transpiration, per genotype, Silt Loam ================================
 # Trans ~ K(h) + MFP (OLS per genotype on replicate means, LowLate + LowConst); prediction at the LowConst K(h) and MFP
 import matplotlib.gridspec as mgs
 import statsmodels.api as sm_api
@@ -1873,7 +1899,7 @@ def _stars_ns(p):
     if not np.isfinite(p): return ''
     return '***' if p < 0.001 else '**' if p < 0.01 else '*' if p < 0.05 else 'n.s.'
 
-def kh_mfp_trans_pergenotype(window_rows1, outdir=OUT_M5VSM3, min_n=6):
+def kh_mfp_trans_pergenotype(window_rows1, outdir=OUT_TIMING, min_n=6):
     FIG_SCALE, LATE, SEV = 1.10 * PUB_FIG_GROWTH, r'Low$_{\mathrm{Late}}$', r'Low$_{\mathrm{Const}}$'
     df = window_rows1.copy()
     df.columns = [str(c).strip() for c in df.columns]
@@ -1930,7 +1956,7 @@ def kh_mfp_trans_pergenotype(window_rows1, outdir=OUT_M5VSM3, min_n=6):
     with plt.rc_context(rc):
         plt.close('all')
         fig = plt.figure(figsize=(18 * FIG_SCALE, 12 * FIG_SCALE * PUB_FIG_PAD))
-        fig.suptitle(r'Supporting Information Fig. S7  |  K(h) + MFP → Trans per genotype  |  Silt Loam  |  Nov 28–30' '\n'
+        fig.suptitle(r'Fig. S9  |  K(h) + MFP → Trans per genotype  |  Silt Loam  |  Nov 28–30' '\n'
                      r'Predicted (K(h) + MFP model) vs Observed transpiration  |  Low$_{\mathrm{Late}}$ (filled) vs Low$_{\mathrm{Const}}$ (open)',
                      fontsize=PUB_FS_AXIS, fontweight='bold', y=1.02)
         grid = mgs.GridSpec(2, 3, figure=fig, hspace=0.28, wspace=0.22, left=0.07, right=0.98, top=0.87, bottom=0.10)
@@ -1976,7 +2002,7 @@ def kh_mfp_trans_pergenotype(window_rows1, outdir=OUT_M5VSM3, min_n=6):
                              f'Mean K(h) ratio={np.mean(kh_ratios):.1f}×  Mean MFP ratio={np.mean(mfp_ratios):.1f}×',
                  ha='center', va='bottom', fontsize=PUB_FS_LEGEND, style='italic',
                  bbox=dict(boxstyle='round,pad=0.4', facecolor='#F5F5F5', edgecolor='#AAAAAA', alpha=0.9))
-        fig.savefig(os.path.join(outdir, 'FigS7_KhMFP_Trans_pergenotype_SiltLoam.png'), dpi=300, bbox_inches='tight')
+        fig.savefig(os.path.join(outdir, 'FigS9_KhMFP_Trans_pergenotype_SiltLoam.png'), dpi=300, bbox_inches='tight')
         plt.close(fig)
     return res
 
@@ -1998,7 +2024,7 @@ def _remove_outliers_iqr(rep, scol, vcol, iqr_k=OUTLIER_IQR_K):
         keep.loc[g.index] = g[vcol].between(q1 - iqr_k * (q3 - q1), q3 + iqr_k * (q3 - q1))
     return rep[keep].copy()
 
-def root_traits_cam2_eightpanel(df_code2, outdir=OUT_M5VSM3):
+def root_traits_cam2_eightpanel(df_code2, outdir=OUT_TIMING):
     global FS
     FIG_SCALE, s2, g2, r2, d2 = 1.10 * PUB_FIG_GROWTH, 'Soil', 'Genotype', 'Rep', 'DroughtLevel'
     traits = [('trl', 'Total root length (m)', 'trl'), ('rdmean', 'Root diameter (mm)', 'rdmean'),
@@ -2027,7 +2053,7 @@ def root_traits_cam2_eightpanel(df_code2, outdir=OUT_M5VSM3):
             axes[0, 0].legend(handles=[Patch(facecolor=SOIL_COLORS[SOIL_SILT], edgecolor='white', hatch=HATCH, linewidth=BAR_EDGE_W, label=DISP_M3),
                                        Patch(facecolor='white', edgecolor=SOIL_COLORS[SOIL_SILT], hatch=HATCH, linewidth=BAR_EDGE_W, label=DISP_M5)], **leg)
             axes[0, 1].legend(handles=[Patch(facecolor=SOIL_COLORS[s], edgecolor='black', label=s) for s in (SOIL_SILT, SOIL_SAND)], **leg)
-            fig.savefig(os.path.join(outdir, f"Cam2_RootTraits_8panel_{LAB_M5}_vs_{LAB_M3}_ANOVA.png"), dpi=300, bbox_inches='tight')
+            fig.savefig(os.path.join(outdir, "FigS10_root_traits_LowLate_vs_LowConst.png"), dpi=300, bbox_inches='tight')
             plt.close(fig)
     finally:
         FS = FS_BACKUP
@@ -2046,6 +2072,7 @@ def root_traits_cam2_eightpanel(df_code2, outdir=OUT_M5VSM3):
                    f"Model: Value ~ Treatment * Genotype. {DISP_M3}=LowConst, {DISP_M5}=LowLate. Standard ANOVA if normality+BP pass; else transforms; "
                    f"else HC3 robust. " + note, id_cols=["Panel", "Parameter", "Soil"])
     for c, label, fname in traits:
+        if not SAVE_EXTRA: break                     # fold-change tables: extra
         fc = _fc_table(reps[c], s2, g2, d2, c, [SOIL_SILT, SOIL_SAND], DL_LATE, DL_SEV).rename(columns={s2: "Soil", g2: "Genotype"})
         for col in [f"Mean_{LAB_M5}", f"SE_{LAB_M5}", f"Mean_{LAB_M3}", f"SE_{LAB_M3}"]:
             fc[col] = pd.to_numeric(fc[col], errors="coerce").map(lambda x: _ff(x, 4))
