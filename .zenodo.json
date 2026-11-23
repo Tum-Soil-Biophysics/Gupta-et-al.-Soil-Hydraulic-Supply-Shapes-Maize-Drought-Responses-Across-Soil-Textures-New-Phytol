@@ -1,4 +1,86 @@
 {
+  "title": "Gupta et al. (2026): Soil Hydraulic Supply Shapes Maize Drought Responses Across Soil Textures (data and code)",
+  "upload_type": "dataset",
+  "description": "Data, code and Supporting Information for the article \"Soil Hydraulic Supply Shapes Maize Drought Responses Across Soil Textures\" by Gupta et al., New Phytologist (2026). Six maize (Zea mays L.) genotypes were grown in silt loam and sandy loam, with drought imposed from establishment or after shoot development. The repository contains the soil hydraulic properties (HYPROP), the plant and soil measurements of both campaigns, and the Python scripts that derive transpiration downregulation thresholds on the scales of soil water content, matric potential, unsaturated hydraulic conductivity K(h) and matric flux potential, and that produce the statistics, figures and tables of the article. See README for the layout and how to run the scripts.",
+  "creators": [
+    {
+      "name": "Gupta, Saniv",
+      "affiliation": "Technical University of Munich, Chair of Soil Biophysics and Environmental Systems"
+    },
+    {
+      "name": "Wild, Andreas J.",
+      "affiliation": "University of Bayreuth, Agroecology, Bayreuth Center of Ecology and Environmental Research (BayCEER)"
+    },
+    {
+      "name": "Heid, Alica",
+      "affiliation": "University of Bayreuth, Ecological Microbiology, Bayreuth Center of Ecology and Environmental Research (BayCEER)"
+    },
+    {
+      "name": "Thiel, Jessica",
+      "affiliation": "Bavarian State Research Center for Agriculture (LfL), Institute for Agroecology and Organic Farming"
+    },
+    {
+      "name": "Humpert, Jonas",
+      "affiliation": "Technical University of Munich, Chair of Soil Biophysics and Environmental Systems"
+    },
+    {
+      "name": "Visconti, Anaclara",
+      "affiliation": "University of Bayreuth, Agroecology, Bayreuth Center of Ecology and Environmental Research (BayCEER); Leibniz Centre for Agricultural Landscape Research (ZALF)"
+    },
+    {
+      "name": "Holz, Maire",
+      "affiliation": "Leibniz Centre for Agricultural Landscape Research (ZALF)"
+    },
+    {
+      "name": "Wiesmeier, Martin",
+      "affiliation": "Bavarian State Research Center for Agriculture (LfL), Institute for Agroecology and Organic Farming"
+    },
+    {
+      "name": "Lueders, Tillmann",
+      "affiliation": "University of Bayreuth, Ecological Microbiology, Bayreuth Center of Ecology and Environmental Research (BayCEER)"
+    },
+    {
+      "name": "Geyer, Manuel",
+      "affiliation": "Bavarian State Research Center for Agriculture (LfL), Institute for Crop Science and Plant Breeding"
+    },
+    {
+      "name": "Groth, Jennifer",
+      "affiliation": "Bavarian State Research Center for Agriculture (LfL), Institute for Crop Science and Plant Breeding"
+    },
+    {
+      "name": "Pausch, Johanna",
+      "affiliation": "University of Bayreuth, Agroecology, Bayreuth Center of Ecology and Environmental Research (BayCEER)"
+    },
+    {
+      "name": "Hafner, Benjamin D.",
+      "affiliation": "Technical University of Munich, Chair of Soil Biophysics and Environmental Systems"
+    },
+    {
+      "name": "Zarebanadkouki, Mohsen",
+      "affiliation": "Technical University of Munich, Chair of Soil Biophysics and Environmental Systems"
+    }
+  ],
+  "license": "mit",
+  "keywords": [
+    "drought",
+    "maize",
+    "Zea mays",
+    "matric flux potential",
+    "soil hydraulic conductivity",
+    "soil texture",
+    "transpiration",
+    "root traits",
+    "rhizosheath",
+    "soil-plant interactions"
+  ],
+  "access_right": "open",
+  "communities": [
+    {
+      "identifier": "tum-sbe"
+    }
+  ]
+}
+{
   "title": "[Repository name]: [short description]",
   "upload_type": "software",
   "description": "[What the code does, which article it belongs to, and how to run it. Two to four sentences.]",
